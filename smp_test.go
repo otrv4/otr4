@@ -1,9 +1,7 @@
 package otr4
 
 import (
-	_ "fmt"
 	. "gopkg.in/check.v1"
-	_ "reflect"
 )
 
 type SMPSuite struct{}
