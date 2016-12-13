@@ -1,7 +1,7 @@
 package otr4
 
 import (
-	sha3 "golang.org/x/crypto/sha3"
+	"golang.org/x/crypto/sha3"
 )
 
 const smpVersion = 2
