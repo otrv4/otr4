@@ -1,8 +1,16 @@
 package otr4
 
-type publicKey struct{}
+import (
+	"math/big"
+)
 
-type secretKey struct{}
+type publicKey struct {
+	pub *big.Int
+}
+
+type secretKey struct {
+	sec *big.Int
+}
 
 func generateSecretKey() (*secretKey, bool) {
 	return &secretKey{}, true
