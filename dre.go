@@ -26,3 +26,10 @@ func hashToScalar(in []byte) (scalar []byte) {
 	hash := sha3.Sum512(in)
 	return ed448.ModQ(hash[:])
 }
+
+func concat(bytes ...[]byte) (b []byte) {
+	for i := range bytes {
+		b = append(b, bytes[i]...)
+	}
+	return
+}
