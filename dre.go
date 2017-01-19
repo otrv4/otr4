@@ -1,6 +1,7 @@
 package otr4
 
 import (
+	"errors"
 	"github.com/twstrike/ed448"
 	"golang.org/x/crypto/sha3"
 )
@@ -27,9 +28,14 @@ func hashToScalar(in []byte) (scalar []byte) {
 	return ed448.ModQ(hash[:])
 }
 
-func concat(bytes ...[]byte) (b []byte) {
+func concat(bytes ...[]byte) ([]byte, error) {
+	b := []byte{}
+	if len(bytes) < 2 {
+		return nil, errors.New("missing concat arguments")
+	}
 	for i := range bytes {
 		b = append(b, bytes[i]...)
 	}
-	return
+
+	return b, nil
 }

@@ -77,10 +77,12 @@ func (s *DualReceiverEncryptionSuite) Test_Concat(c *C) {
 		0x2a, 0xf3, 0xcc, 0x69, 0xbb, 0xa1, 0x50,
 		0x35, 0xe8, 0x64, 0x74, 0x82, 0x90, 0xdc,
 	}
-
-	concatenatedValue := concat(a, b, d, testByteArray)
-
-	exp := []byte{
+	exp3Values := []byte{
+		4,
+		0x2a, 0xf3, 0xcc, 0x69, 0xbb, 0xa1, 0x50,
+		0x35, 0xe8, 0x64, 0x74, 0x82, 0x90, 0xdc,
+	}
+	exp4Values := []byte{
 		4,
 		0x2a, 0xf3, 0xcc, 0x69, 0xbb, 0xa1, 0x50,
 		0x35, 0xe8, 0x64, 0x74, 0x82, 0x90, 0xdc,
@@ -95,5 +97,20 @@ func (s *DualReceiverEncryptionSuite) Test_Concat(c *C) {
 		0xb7, 0xd5, 0x9a, 0x1b, 0x3c, 0xf2, 0xfd, 0x63,
 	}
 
-	c.Assert(concatenatedValue, DeepEquals, exp)
+	noValue, err1 := concat()
+	c.Assert(noValue, IsNil)
+	c.Assert(err1, Not(IsNil))
+
+	empty, err2 := concat(b)
+	c.Assert(empty, IsNil)
+	c.Assert(err2, Not(IsNil))
+
+	values3, err3 := concat(a, b, d)
+	c.Assert(values3, DeepEquals, exp3Values)
+	c.Assert(err3, IsNil)
+
+	values4, err4 := concat(a, b, d, testByteArray)
+	c.Assert(values4, DeepEquals, exp4Values)
+	c.Assert(err4, IsNil)
+
 }
