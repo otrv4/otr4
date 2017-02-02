@@ -23,9 +23,11 @@ func auth(aPub, bPub, bPubEcdh *publicKey, aSec *secretKey, message []byte) (sig
 	return
 }
 
-func hashToScalar(in []byte) (scalar []byte) {
+func hashToScalar(in []byte) (scalar ed448.Scalar) {
 	hash := sha3.Sum512(in)
-	return ed448.ModQ(hash[:])
+	s := ed448.NewDecafScalar([56]byte{})
+	s.Decode(hash[:])
+	return s
 }
 
 func concat(bytes ...[]byte) ([]byte, error) {
