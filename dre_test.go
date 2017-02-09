@@ -84,9 +84,9 @@ func (s *DualReceiverEncryptionSuite) Test_Concat(c *C) {
 
 	c.Assert(func() { concat() }, Panics, "missing concat arguments")
 	c.Assert(func() { concat(b) }, Panics, "missing concat arguments")
+	c.Assert(func() { concat("not a valid input", b) }, Panics, "not a valid input")
 	c.Assert(concat(a, d), DeepEquals, exp3Values)
 	c.Assert(concat(a, b, d, testByteSlice), DeepEquals, exp4Values)
-
 }
 
 func fixedRand() []ed448.Scalar {
