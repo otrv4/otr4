@@ -11,10 +11,9 @@ func auth(rand func() []ed448.Scalar, ourPub, theirPub, theirPubEcdh ed448.Point
 	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
-	values := concat(ed448.BasePoint, ed448.ScalarQ, ourPub,
+	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub,
 		theirPub, theirPubEcdh, pt1, pt2, pt3, message)
-	c := hashToScalar(values)
-	c1, r1 := ed448.NewDecafScalar([56]byte{}), ed448.NewDecafScalar([56]byte{})
+	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
 	c1.Sub(c, c2)
 	c1.Sub(c1, c3)
 	r1.Mul(c1, ourSec)
@@ -23,10 +22,32 @@ func auth(rand func() []ed448.Scalar, ourPub, theirPub, theirPubEcdh ed448.Point
 	return sigma
 }
 
+func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
+	c1 := ed448.NewDecafScalar(sigma[:56])
+	r1 := ed448.NewDecafScalar(sigma[56:112])
+	c2 := ed448.NewDecafScalar(sigma[112:168])
+	r2 := ed448.NewDecafScalar(sigma[168:224])
+	c3 := ed448.NewDecafScalar(sigma[224:280])
+	r3 := ed448.NewDecafScalar(sigma[280:336])
+	pt1 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
+	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
+	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
+	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub,
+		ourPub, ourPubEcdh, pt1, pt2, pt3, message)
+	out := ed448.NewDecafScalar(nil)
+	out.Add(c1, c2)
+	out.Add(out, c3)
+	return c.Equals(out)
+}
+
+func concatAndHash(bytes ...interface{}) ed448.Scalar {
+	return hashToScalar(concat(bytes...))
+}
+
 func hashToScalar(in []byte) ed448.Scalar {
 	hash := make([]byte, 56)
 	sha3.ShakeSum256(hash, in)
-	s := ed448.NewDecafScalar([56]byte{})
+	s := ed448.NewDecafScalar(nil)
 	s.Decode(hash)
 	return s
 }
