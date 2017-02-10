@@ -1,6 +1,7 @@
 package otr4
 
 import (
+	"crypto/rand"
 	"errors"
 	"io"
 	"testing"
@@ -269,7 +270,7 @@ func (s *DualReceiverEncryptionSuite) Test_Concat(c *C) {
 
 func (s *DualReceiverEncryptionSuite) Test_Auth(c *C) {
 
-	secAB := []byte{
+	secA := ed448.NewDecafScalar([]byte{
 		0x71, 0x7b, 0x24, 0xd5, 0xd4, 0x98, 0x0c, 0xfe,
 		0xce, 0x60, 0xe7, 0x97, 0x84, 0xf4, 0x1c, 0x72,
 		0x01, 0x07, 0xb8, 0x24, 0xa8, 0x43, 0x0e, 0x81,
@@ -277,8 +278,7 @@ func (s *DualReceiverEncryptionSuite) Test_Auth(c *C) {
 		0x0c, 0x90, 0x99, 0x7f, 0x1e, 0xed, 0x83, 0xde,
 		0xbe, 0xe7, 0xef, 0x8e, 0xea, 0xeb, 0xc8, 0x5d,
 		0x67, 0x5b, 0x3b, 0x04, 0x55, 0x0a, 0x36, 0x2f,
-	}
-	secA := ed448.NewDecafScalar(secAB)
+	})
 	message := []byte("our message")
 
 	sigma, err := auth(fixedRandR(randData), testPubA, testPubB, testPubC, secA, message)
@@ -299,4 +299,42 @@ func (s *DualReceiverEncryptionSuite) Test_Verify(c *C) {
 	b := verify(testPubA, testPubB, testPubC, testSigma, message)
 
 	c.Assert(b, Equals, expC)
+}
+
+// functional test - move?
+func (s *DualReceiverEncryptionSuite) Test_VerifyAndAuth(c *C) {
+	secA := ed448.NewDecafScalar([]byte{
+		0x71, 0x7b, 0x24, 0xd5, 0xd4, 0x98, 0x0c, 0xfe,
+		0xce, 0x60, 0xe7, 0x97, 0x84, 0xf4, 0x1c, 0x72,
+		0x01, 0x07, 0xb8, 0x24, 0xa8, 0x43, 0x0e, 0x81,
+		0x25, 0xca, 0xb4, 0xa0, 0xda, 0xf5, 0xfa, 0xf6,
+		0x0c, 0x90, 0x99, 0x7f, 0x1e, 0xed, 0x83, 0xde,
+		0xbe, 0xe7, 0xef, 0x8e, 0xea, 0xeb, 0xc8, 0x5d,
+		0x67, 0x5b, 0x3b, 0x04, 0x55, 0x0a, 0x36, 0x2f,
+	})
+	message := []byte("hello, I am a message")
+	sigma, _ := auth(rand.Reader, testPubA, testPubB, testPubC, secA, message)
+	b := verify(testPubA, testPubB, testPubC, sigma, message)
+	c.Assert(b, Equals, true)
+
+	fakeMessage := []byte("fake message")
+	sigma, _ = auth(rand.Reader, testPubA, testPubB, testPubC, secA, message)
+	b = verify(testPubA, testPubB, testPubC, sigma, fakeMessage)
+	c.Assert(b, Equals, false)
+
+	sigma, _ = auth(rand.Reader, testPubA, testPubB, testPubC, secA, message)
+	b = verify(testPubB, testPubB, testPubC, sigma, message)
+	c.Assert(b, Equals, false)
+
+	sigma, _ = auth(rand.Reader, testPubA, testPubB, testPubC, secA, message)
+	b = verify(testPubA, testPubA, testPubC, sigma, message)
+	c.Assert(b, Equals, false)
+
+	sigma, _ = auth(rand.Reader, testPubA, testPubB, testPubC, secA, message)
+	b = verify(testPubA, testPubB, testPubB, sigma, message)
+	c.Assert(b, Equals, false)
+
+	sigma, _ = auth(rand.Reader, testPubA, testPubB, testPubC, secA, message)
+	b = verify(testPubA, testPubB, testPubC, testSigma, message)
+	c.Assert(b, Equals, false)
 }
