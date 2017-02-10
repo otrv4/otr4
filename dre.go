@@ -1,25 +1,74 @@
 package otr4
 
 import (
+	"errors"
+	"io"
+
 	"github.com/twstrike/ed448"
 	"golang.org/x/crypto/sha3"
 )
 
-func auth(rand func() []ed448.Scalar, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) []byte {
-	rv := rand()
-	t1, c2, c3, r2, r3 := rv[0], rv[1], rv[2], rv[3], rv[4]
+func randScalar(r io.Reader, b []byte) ([]byte, error) {
+	_, err := io.ReadFull(r, b)
+
+	if err != nil {
+		return nil, errors.New(err.Error() + ": not enough bytes")
+	}
+
+	return b, nil
+}
+
+// TODO Add stronger randomness for t1
+// func generateStrongParams(rand io.Reader, b []byte) (s ed448.Scalar, err error) {
+
+// 	randScalar(rand, b)
+
+// 	hash := sha3.NewShake256()
+// 	hash.Write(b)
+// 	hash.Write([]byte("decaf_448_generate_strong"))
+// 	var out [56]byte
+// 	hash.Read(out[:])
+// 	return ed448.NewDecafScalar(out[:]), nil
+// }
+
+func generateAuthParameters(rand io.Reader, n int) ([]ed448.Scalar, error) {
+	b := make([]byte, 56*n) //make that a const
+	a := []ed448.Scalar{}
+
+	for i := 0; i < n; i++ {
+		r, err := randScalar(rand, b[i*56:(i+1)*56])
+		if err != nil {
+			return nil, err
+		}
+		a = append(a, ed448.NewDecafScalar(r))
+	}
+	return a, nil
+}
+
+func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) ([]byte, error) {
+
+	ap, err := generateAuthParameters(rand, 5)
+	if err != nil {
+		return nil, err
+	}
+	t1, c2, c3, r2, r3 := ap[0], ap[1], ap[2], ap[3], ap[4]
+
 	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
+
 	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub,
 		theirPub, theirPubEcdh, pt1, pt2, pt3, message)
+
 	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
+
 	c1.Sub(c, c2)
 	c1.Sub(c1, c3)
 	r1.Mul(c1, ourSec)
 	r1.Sub(t1, r1)
+
 	sigma := concat(c1, r1, c2, r2, c3, r3)
-	return sigma
+	return sigma, err
 }
 
 func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
