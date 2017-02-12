@@ -2,10 +2,6 @@ default: lint test
 
 ci: lint test
 
-get:
-	go get -u github.com/golang/lint/golint
-	go get -t -v ./...
-
 lint:
 	golint
 
