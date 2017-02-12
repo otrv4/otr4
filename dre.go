@@ -8,85 +8,14 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-func randScalar(r io.Reader, b []byte) ([]byte, error) {
+func randScalar(r io.Reader, b []byte) (ed448.Scalar, error) {
 	_, err := io.ReadFull(r, b)
 
 	if err != nil {
 		return nil, errors.New(err.Error() + ": not enough bytes")
 	}
 
-	return b, nil
-}
-
-// TODO Add stronger randomness for t1
-// func generateStrongParams(rand io.Reader, b []byte) (s ed448.Scalar, err error) {
-
-// 	randScalar(rand, b)
-
-// 	hash := sha3.NewShake256()
-// 	hash.Write(b)
-// 	hash.Write([]byte("decaf_448_generate_strong"))
-// 	var out [56]byte
-// 	hash.Read(out[:])
-// 	return ed448.NewDecafScalar(out[:]), nil
-// }
-
-func generateAuthParameters(rand io.Reader, n int) ([]ed448.Scalar, error) {
-	b := make([]byte, 56*n) //make that a const
-	a := []ed448.Scalar{}
-
-	for i := 0; i < n; i++ {
-		r, err := randScalar(rand, b[i*56:(i+1)*56])
-		if err != nil {
-			return nil, err
-		}
-		a = append(a, ed448.NewDecafScalar(r))
-	}
-	return a, nil
-}
-
-func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) ([]byte, error) {
-
-	ap, err := generateAuthParameters(rand, 5)
-	if err != nil {
-		return nil, err
-	}
-	t1, c2, c3, r2, r3 := ap[0], ap[1], ap[2], ap[3], ap[4]
-
-	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
-	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
-	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
-
-	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub,
-		theirPub, theirPubEcdh, pt1, pt2, pt3, message)
-
-	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
-
-	c1.Sub(c, c2)
-	c1.Sub(c1, c3)
-	r1.Mul(c1, ourSec)
-	r1.Sub(t1, r1)
-
-	sigma := concat(c1, r1, c2, r2, c3, r3)
-	return sigma, err
-}
-
-func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
-	c1 := ed448.NewDecafScalar(sigma[:56])
-	r1 := ed448.NewDecafScalar(sigma[56:112])
-	c2 := ed448.NewDecafScalar(sigma[112:168])
-	r2 := ed448.NewDecafScalar(sigma[168:224])
-	c3 := ed448.NewDecafScalar(sigma[224:280])
-	r3 := ed448.NewDecafScalar(sigma[280:336])
-	pt1 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
-	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
-	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
-	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub,
-		ourPub, ourPubEcdh, pt1, pt2, pt3, message)
-	out := ed448.NewDecafScalar(nil)
-	out.Add(c1, c2)
-	out.Add(out, c3)
-	return c.Equals(out)
+	return ed448.NewDecafScalar(b), nil
 }
 
 func concatAndHash(bytes ...interface{}) ed448.Scalar {
@@ -94,7 +23,7 @@ func concatAndHash(bytes ...interface{}) ed448.Scalar {
 }
 
 func hashToScalar(in []byte) ed448.Scalar {
-	hash := make([]byte, 56)
+	hash := make([]byte, fieldBytes)
 	sha3.ShakeSum256(hash, in)
 	s := ed448.NewDecafScalar(nil)
 	s.Decode(hash)
@@ -118,4 +47,82 @@ func concat(bytes ...interface{}) (b []byte) {
 		}
 	}
 	return b
+}
+
+// TODO Add stronger randomness for t1
+// func generateStrongParams(rand io.Reader, b []byte) (s ed448.Scalar, err error) {
+
+// 	randScalar(rand, b)
+
+// 	hash := sha3.NewShake256()
+// 	hash.Write(b)
+// 	hash.Write([]byte("decaf_448_generate_strong"))
+// 	var out [56]byte
+// 	hash.Read(out[:])
+// 	return ed448.NewDecafScalar(out[:]), nil
+// }
+
+func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
+	bytes := make([]byte, fieldBytes*n)
+	var out []ed448.Scalar
+
+	for i := 0; i < n; i++ {
+		scalar, err := randScalar(rand, bytes[i*fieldBytes:(i+1)*fieldBytes])
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, scalar)
+	}
+	return out, nil
+}
+
+func parse(bytes []byte) []ed448.Scalar {
+	var out []ed448.Scalar
+
+	for i := 0; i < len(bytes); i += fieldBytes {
+		out = append(out, ed448.NewDecafScalar(bytes[i:i+fieldBytes]))
+	}
+	return out
+}
+
+func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) (sigma []byte, err error) {
+
+	ap, err := generateAuthParams(rand, 5)
+	if err != nil {
+		return nil, err
+	}
+	t1, c2, c3, r2, r3 := ap[0], ap[1], ap[2], ap[3], ap[4]
+
+	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
+	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
+	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
+
+	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub,
+		theirPub, theirPubEcdh, pt1, pt2, pt3, message)
+
+	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
+
+	c1.Sub(c, c2)
+	c1.Sub(c1, c3)
+	r1.Mul(c1, ourSec)
+	r1.Sub(t1, r1)
+
+	sigma = concat(c1, r1, c2, r2, c3, r3)
+	return
+}
+
+func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
+
+	ps := parse(sigma)
+	c1, r1, c2, r2, c3, r3 := ps[0], ps[1], ps[2], ps[3], ps[4], ps[5]
+
+	pt1 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
+	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
+	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
+	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub, ourPub, ourPubEcdh, pt1, pt2, pt3, message)
+
+	out := ed448.NewDecafScalar(nil)
+	out.Add(c1, c2)
+	out.Add(out, c3)
+	return c.Equals(out)
 }
