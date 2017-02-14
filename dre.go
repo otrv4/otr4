@@ -43,7 +43,7 @@ func concat(bytes ...interface{}) (b []byte) {
 		case []byte:
 			b = append(b, i...)
 		default:
-			panic("not a valid input")
+			panic("invalid input")
 		}
 	}
 	return b
@@ -85,42 +85,33 @@ func parse(bytes []byte) []ed448.Scalar {
 	return out
 }
 
-func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) (sigma []byte, err error) {
-
+func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) ([]byte, error) {
 	ap, err := generateAuthParams(rand, 5)
 	if err != nil {
 		return nil, err
 	}
 	t1, c2, c3, r2, r3 := ap[0], ap[1], ap[2], ap[3], ap[4]
-
 	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
-
 	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub,
 		theirPub, theirPubEcdh, pt1, pt2, pt3, message)
-
 	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
-
 	c1.Sub(c, c2)
 	c1.Sub(c1, c3)
 	r1.Mul(c1, ourSec)
 	r1.Sub(t1, r1)
-
-	sigma = concat(c1, r1, c2, r2, c3, r3)
-	return
+	sigma := concat(c1, r1, c2, r2, c3, r3)
+	return sigma, err
 }
 
 func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
-
 	ps := parse(sigma)
 	c1, r1, c2, r2, c3, r3 := ps[0], ps[1], ps[2], ps[3], ps[4], ps[5]
-
 	pt1 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
 	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub, ourPub, ourPubEcdh, pt1, pt2, pt3, message)
-
 	out := ed448.NewDecafScalar(nil)
 	out.Add(c1, c2)
 	out.Add(out, c3)
