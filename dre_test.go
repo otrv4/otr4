@@ -13,11 +13,12 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-type DualReceiverEncryptionSuite struct{}
+// XXX: move to appropiate place
+type OTR4Suite struct{}
 
-var _ = Suite(&DualReceiverEncryptionSuite{})
+var _ = Suite(&OTR4Suite{})
 
-func (s *DualReceiverEncryptionSuite) Test_HashToScalar(c *C) {
+func (s *OTR4Suite) Test_HashToScalar(c *C) {
 	scalar := hashToScalar(testByteSlice)
 
 	exp := ed448.NewDecafScalar([]byte{
@@ -33,7 +34,7 @@ func (s *DualReceiverEncryptionSuite) Test_HashToScalar(c *C) {
 	c.Assert(scalar, DeepEquals, exp)
 }
 
-func (s *DualReceiverEncryptionSuite) Test_Concat(c *C) {
+func (s *OTR4Suite) Test_Concat(c *C) {
 	empty := []byte{}
 	bytes := []byte{
 		0x04, 0x2a, 0xf3, 0xcc, 0x69, 0xbb, 0xa1, 0x50,
@@ -63,7 +64,7 @@ func (s *DualReceiverEncryptionSuite) Test_Concat(c *C) {
 	c.Assert(concat(empty, bytes, testSec, testPubA), DeepEquals, exp)
 }
 
-func (s *DualReceiverEncryptionSuite) Test_Auth(c *C) {
+func (s *OTR4Suite) Test_Auth(c *C) {
 	message := []byte("our message")
 	out, err := auth(fixedRand(randData), testPubA, testPubB, testPubC, testSec, message)
 
@@ -83,7 +84,7 @@ func (s *DualReceiverEncryptionSuite) Test_Auth(c *C) {
 	c.Assert(out, IsNil)
 }
 
-func (s *DualReceiverEncryptionSuite) Test_Verify(c *C) {
+func (s *OTR4Suite) Test_Verify(c *C) {
 	message := []byte("our message")
 
 	b := verify(testPubA, testPubB, testPubC, testSigma, message)
@@ -91,7 +92,7 @@ func (s *DualReceiverEncryptionSuite) Test_Verify(c *C) {
 	c.Assert(b, Equals, true)
 }
 
-func (s *DualReceiverEncryptionSuite) Test_VerifyAndAuth(c *C) {
+func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
 	message := []byte("hello, I am a message")
 	sigma, _ := auth(rand.Reader, testPubA, testPubB, testPubC, testSec, message)
 	ver := verify(testPubA, testPubB, testPubC, sigma, message)
