@@ -114,7 +114,7 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 
 func isValidPublicKey(pub *cramerShoupPublicKey) error {
 	if !(pub.c.IsValid() && pub.d.IsValid() && pub.h.IsValid()) {
-		return errors.New("not a valid public key")
+		return errInvalidPublicKey
 	}
 	return nil
 }

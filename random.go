@@ -1,7 +1,6 @@
 package otr4
 
 import (
-	"errors"
 	"io"
 
 	"golang.org/x/crypto/sha3"
@@ -13,7 +12,7 @@ func randInto(r io.Reader, b []byte) error {
 	_, err := io.ReadFull(r, b)
 
 	if err != nil {
-		return errors.New(err.Error() + ": not enough bytes")
+		return errShortRandomReader
 	}
 	return nil
 }
@@ -22,7 +21,7 @@ func randScalar(r io.Reader, b []byte) (ed448.Scalar, error) {
 	_, err := io.ReadFull(r, b)
 
 	if err != nil {
-		return nil, errors.New(err.Error() + ": not enough bytes")
+		return nil, errShortRandomReader
 	}
 
 	return ed448.NewDecafScalar(b), nil

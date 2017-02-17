@@ -2,7 +2,6 @@ package otr4
 
 import (
 	"crypto/rand"
-	"errors"
 
 	"testing"
 
@@ -74,13 +73,13 @@ func (s *OTR4Suite) Test_Auth(c *C) {
 	r := make([]byte, 56*5-1)
 	out, err = auth(fixedRand(r), testPubA, testPubB, testPubC, testSec, message)
 
-	c.Assert(err, DeepEquals, errors.New("unexpected EOF: not enough bytes"))
+	c.Assert(err, DeepEquals, newOtrError("not enough bytes"))
 	c.Assert(out, IsNil)
 
 	r = make([]byte, 56)
 	out, err = auth(fixedRand(r), testPubA, testPubB, testPubC, testSec, message)
 
-	c.Assert(err, DeepEquals, errors.New("unexpected EOF: not enough bytes"))
+	c.Assert(err, DeepEquals, newOtrError("not enough bytes"))
 	c.Assert(out, IsNil)
 }
 
