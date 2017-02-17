@@ -181,11 +181,12 @@ func (s *OTR4Suite) Test_CramerShoupKeyDerivation(c *C) {
 			0xfb, 0xad, 0x1a, 0x2a, 0xae, 0xac, 0x76, 0x82,
 			0x00, 0x93, 0x82, 0xc5, 0xce, 0x31, 0xbc, 0x16}),
 	}
-	priv, pub := deriveCramerShoupKeys(fixedRand(csRandData))
+	priv, pub, err := deriveCramerShoupKeys(fixedRand(csRandData))
 
 	c.Assert(expPub.c, DeepEquals, pub.c)
 	c.Assert(expPub.d, DeepEquals, pub.d)
 	c.Assert(expPub.h, DeepEquals, pub.h)
+	c.Assert(err, Equals, nil)
 
 	c.Assert(expPriv.x1, DeepEquals, priv.x1)
 	c.Assert(expPriv.x2, DeepEquals, priv.x2)
@@ -533,9 +534,10 @@ func (s *OTR4Suite) Test_CramerShoupEncryptAndDecrypt(c *C) {
 		0x63, 0x8c, 0x62, 0x26, 0x9e, 0x17, 0x5d, 0x22,
 	}
 
-	priv, pub := deriveCramerShoupKeys(rand.Reader)
-	cipher, _ := cramerShoupEnc(message, rand.Reader, pub)
-	expMessage, _ := cramerShoupDec(cipher, priv)
+	priv, pub, err := deriveCramerShoupKeys(rand.Reader)
+	cipher, err := cramerShoupEnc(message, rand.Reader, pub)
+	expMessage, err := cramerShoupDec(cipher, priv)
 
 	c.Assert(expMessage, DeepEquals, message)
+	c.Assert(err, IsNil)
 }

@@ -18,7 +18,7 @@ type cramerShoupPublicKey struct {
 	c, d, h ed448.Point
 }
 
-func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoupPublicKey) {
+func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoupPublicKey, error) {
 
 	priv := &cramerShoupPrivateKey{}
 	pub := &cramerShoupPublicKey{}
@@ -33,7 +33,13 @@ func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoup
 	pub.d = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.y1, priv.y2)
 	pub.h = ed448.PointScalarMul(ed448.BasePoint, priv.z)
 
-	return priv, pub
+	err := isValidPublicKey(pub)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return priv, pub, err
 }
 
 // Part of cramer shoup suite
@@ -119,4 +125,11 @@ func randLongTermScalar(rand io.Reader) ed448.Scalar {
 	hash.Read(out[:])
 
 	return ed448.NewDecafScalar(out[:])
+}
+
+func isValidPublicKey(pub *cramerShoupPublicKey) error {
+	if !(pub.c.IsValid() && pub.d.IsValid() && pub.h.IsValid()) {
+		return errors.New("not a valid public key")
+	}
+	return nil
 }
