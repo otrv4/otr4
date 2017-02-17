@@ -50,6 +50,16 @@ func parse(bytes []byte) []ed448.Scalar {
 	return out
 }
 
+// XXX: unify this with parse()
+func parsePoint(bytes []byte) []ed448.Point {
+	var out []ed448.Point
+
+	for i := 0; i < len(bytes); i += fieldBytes {
+		out = append(out, ed448.NewPointFromBytes(bytes[i:i+fieldBytes]))
+	}
+	return out
+}
+
 func concatAndHash(bytes ...interface{}) ed448.Scalar {
 	return hashToScalar(concat(bytes...))
 }
