@@ -20,3 +20,12 @@ func newOtrErrorf(format string, a ...interface{}) error {
 func (oe otrError) Error() string {
 	return "otr: " + oe.msg
 }
+
+func firstError(err ...error) error {
+	for _, e := range err {
+		if e != nil {
+			return e
+		}
+	}
+	return nil
+}

@@ -27,12 +27,12 @@ func randScalar(r io.Reader, b []byte) (ed448.Scalar, error) {
 	return ed448.NewDecafScalar(b), nil
 }
 
-func randLongTermScalar(r io.Reader) ed448.Scalar {
+func randLongTermScalar(r io.Reader) (ed448.Scalar, error) {
 	b := make([]byte, fieldBytes)
 	err := randInto(r, b)
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	hash := sha3.NewShake256()
@@ -42,5 +42,5 @@ func randLongTermScalar(r io.Reader) ed448.Scalar {
 	var out [fieldBytes]byte
 	hash.Read(out[:])
 
-	return ed448.NewDecafScalar(out[:])
+	return ed448.NewDecafScalar(out[:]), nil
 }
