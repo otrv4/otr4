@@ -42,7 +42,6 @@ func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoup
 	return priv, pub, err
 }
 
-// Part of cramer shoup suite
 // XXX: use a receiver
 func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) ([]byte, error) {
 
@@ -111,20 +110,6 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	message = m.Encode()
 
 	return
-}
-
-func randLongTermScalar(rand io.Reader) ed448.Scalar {
-	b := make([]byte, fieldBytes)
-	randScalar(rand, b)
-
-	hash := sha3.NewShake256()
-	hash.Write(b)
-	hash.Write([]byte("cramershoup_secret"))
-
-	var out [fieldBytes]byte
-	hash.Read(out[:])
-
-	return ed448.NewDecafScalar(out[:])
 }
 
 func isValidPublicKey(pub *cramerShoupPublicKey) error {

@@ -1,7 +1,6 @@
 package otr4
 
 import (
-	"errors"
 	"io"
 
 	"github.com/twstrike/ed448"
@@ -103,14 +102,4 @@ func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
 		out = append(out, scalar)
 	}
 	return out, nil
-}
-
-func randScalar(r io.Reader, b []byte) (ed448.Scalar, error) {
-	_, err := io.ReadFull(r, b)
-
-	if err != nil {
-		return nil, errors.New(err.Error() + ": not enough bytes")
-	}
-
-	return ed448.NewDecafScalar(b), nil
 }
