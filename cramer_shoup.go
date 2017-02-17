@@ -85,11 +85,9 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	hash.Read(alpha[:])
 
 	// (u1*(x1+y1*alpha) +u2*(x2+ y2*alpha) == v
-	// XXX: this does not look like the cs paper.
-	// XXX: check this
-	// u1x1u2x2
+	// (u1*x1)+(u2*x2)
 	tmpU1 := ed448.DoubleScalarMul(u1, u2, priv.x1, priv.x2)
-	// u1y1u2y2
+	// (u1*y1)+(u2*y2)
 	tmpU2 := ed448.DoubleScalarMul(u1, u2, priv.y1, priv.y2)
 	tmpV := ed448.PointScalarMul(tmpU2, ed448.NewDecafScalar(alpha[:]))
 	tmpV.Add(tmpU1, tmpV)
@@ -97,7 +95,7 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	valid := tmpV.Equals(v)
 
 	if !valid {
-		err = errors.New("verify failed")
+		err = errors.New("verification of cipher failed")
 		return nil, err
 	}
 
@@ -112,10 +110,13 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 func randLongTermScalar(rand io.Reader) ed448.Scalar {
 	b := make([]byte, fieldBytes)
 	randScalar(rand, b)
+
 	hash := sha3.NewShake256()
 	hash.Write(b)
 	hash.Write([]byte("cramershoup_secret"))
-	var out [fieldBytes]byte //is it ok? use 64 instead?
+
+	var out [fieldBytes]byte
 	hash.Read(out[:])
+
 	return ed448.NewDecafScalar(out[:])
 }
