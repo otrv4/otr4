@@ -58,8 +58,7 @@ func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoup
 }
 
 func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) error {
-	bytes := make([]byte, fieldBytes)
-	r, err := randScalar(rand, bytes)
+	r, err := randScalar(rand)
 	if err != nil {
 		return err
 	}

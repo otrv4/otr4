@@ -9,14 +9,12 @@ import (
 
 func drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (ed448.Point, ed448.Point, error) {
 
-	bytes1 := make([]byte, fieldBytes)
-	k1, err := randScalar(rand, bytes1)
+	k1, err := randScalar(rand)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	bytes2 := make([]byte, fieldBytes)
-	k2, err := randScalar(rand, bytes2)
+	k2, err := randScalar(rand)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -101,11 +99,10 @@ func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) boo
 }
 
 func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
-	bytes := make([]byte, fieldBytes*n)
 	var out []ed448.Scalar
 
 	for i := 0; i < n; i++ {
-		scalar, err := randScalar(rand, bytes[i*fieldBytes:(i+1)*fieldBytes])
+		scalar, err := randScalar(rand)
 		if err != nil {
 			return nil, err
 		}

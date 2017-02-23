@@ -8,7 +8,8 @@ import (
 	"github.com/twstrike/ed448"
 )
 
-func randScalar(r io.Reader, b []byte) (ed448.Scalar, error) {
+func randScalar(r io.Reader) (ed448.Scalar, error) {
+	b := make([]byte, fieldBytes)
 	_, err := io.ReadFull(r, b)
 	if err != nil {
 		return nil, notEnoughEntropy
