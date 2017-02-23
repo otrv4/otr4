@@ -76,10 +76,14 @@ func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) (
 	var alpha [fieldBytes]byte
 	hash.Read(alpha[:])
 
-	// v = c*r + d*(r * alpha)
-	tmp := ed448.NewDecafScalar(nil)
-	tmp.Mul(r, ed448.NewDecafScalar(alpha[:]))
-	v := ed448.DoubleScalarMul(pub.c, pub.d, r, tmp)
+	// s = c * r
+	// t = d*(r * alpha)
+	// v = s + t
+	s := ed448.PointScalarMul(pub.c, r)
+	t := ed448.PointScalarMul(pub.d, r)
+	t = ed448.PointScalarMul(t, ed448.NewDecafScalar(alpha[:]))
+	v := ed448.NewPointFromBytes(nil)
+	v.Add(s, t)
 
 	cipher := concat(u1, u2, e, v)
 	return cipher, nil
