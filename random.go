@@ -8,20 +8,11 @@ import (
 	"github.com/twstrike/ed448"
 )
 
-func randInto(r io.Reader, b []byte) error {
-	_, err := io.ReadFull(r, b)
-
-	if err != nil {
-		return errShortRandomReader
-	}
-	return nil
-}
-
 func randScalar(r io.Reader, b []byte) (ed448.Scalar, error) {
 	_, err := io.ReadFull(r, b)
 
 	if err != nil {
-		return nil, errShortRandomReader
+		return nil, notEnoughEntropy
 	}
 
 	return ed448.NewDecafScalar(b), nil
@@ -29,10 +20,9 @@ func randScalar(r io.Reader, b []byte) (ed448.Scalar, error) {
 
 func randLongTermScalar(r io.Reader) (ed448.Scalar, error) {
 	b := make([]byte, fieldBytes)
-	err := randInto(r, b)
-
+	_, err := io.ReadFull(r, b)
 	if err != nil {
-		return nil, err
+		return nil, notEnoughEntropy
 	}
 
 	hash := sha3.NewShake256()

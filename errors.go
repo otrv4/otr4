@@ -2,8 +2,8 @@ package otr4
 
 import "fmt"
 
-var errInvalidPublicKey = newOtrError("not a valid Public Key")
-var errShortRandomReader = newOtrError("not enough bytes")
+var errInvalidPublicKey = newOtrError("not a valid public key")
+var notEnoughEntropy = newOtrError("cannot source enough entropy")
 
 type otrError struct {
 	msg string
@@ -19,13 +19,4 @@ func newOtrErrorf(format string, a ...interface{}) error {
 
 func (oe otrError) Error() string {
 	return "otr: " + oe.msg
-}
-
-func firstError(err ...error) error {
-	for _, e := range err {
-		if e != nil {
-			return e
-		}
-	}
-	return nil
 }

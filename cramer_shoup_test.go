@@ -2,7 +2,6 @@ package otr4
 
 import (
 	"crypto/rand"
-	"errors"
 
 	"github.com/twstrike/ed448"
 	. "gopkg.in/check.v1"
@@ -188,7 +187,7 @@ func (s *OTR4Suite) Test_CramerShoupKeyDerivation(c *C) {
 	c.Assert(expPub.c, DeepEquals, pub.c)
 	c.Assert(expPub.d, DeepEquals, pub.d)
 	c.Assert(expPub.h, DeepEquals, pub.h)
-	c.Assert(err, Equals, nil)
+	c.Assert(err, IsNil)
 
 	c.Assert(expPriv.x1, DeepEquals, priv.x1)
 	c.Assert(expPriv.x2, DeepEquals, priv.x2)
@@ -471,7 +470,7 @@ func (s *OTR4Suite) Test_CramerShoupDecryption(c *C) {
 		0xea, 0x0f, 0x12, 0x42, 0xff, 0xd4, 0xef, 0x32,
 	}
 	_, err = cramerShoupDec(fakeCipher, priv)
-	c.Assert(err, DeepEquals, errors.New("verification of cipher failed"))
+	c.Assert(err, ErrorMatches, ".*verification of cipher failed")
 }
 
 func (s *OTR4Suite) Test_CramerShoupEncryptAndDecrypt(c *C) {
@@ -486,9 +485,12 @@ func (s *OTR4Suite) Test_CramerShoupEncryptAndDecrypt(c *C) {
 	}
 
 	priv, pub, err := deriveCramerShoupKeys(rand.Reader)
-	cipher, err := cramerShoupEnc(message, rand.Reader, pub)
-	expMessage, err := cramerShoupDec(cipher, priv)
+	c.Assert(err, IsNil)
 
+	cipher, err := cramerShoupEnc(message, rand.Reader, pub)
+	c.Assert(err, IsNil)
+
+	expMessage, err := cramerShoupDec(cipher, priv)
 	c.Assert(expMessage, DeepEquals, message)
 	c.Assert(err, IsNil)
 }

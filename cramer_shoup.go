@@ -1,7 +1,6 @@
 package otr4
 
 import (
-	"errors"
 	"io"
 
 	"golang.org/x/crypto/sha3"
@@ -19,19 +18,32 @@ type cramerShoupPublicKey struct {
 }
 
 func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
-
 	priv := &cramerShoupPrivateKey{}
-	var err1, err2, err3, err4, err5 error
-
-	priv.x1, err1 = randLongTermScalar(rand)
-	priv.x2, err2 = randLongTermScalar(rand)
-	priv.y1, err3 = randLongTermScalar(rand)
-	priv.y2, err4 = randLongTermScalar(rand)
-	priv.z, err5 = randLongTermScalar(rand)
-
-	return priv, firstError(err1, err2, err3, err4, err5)
+	var err error
+	priv.x1, err = randLongTermScalar(rand)
+	if err != nil {
+		return priv, err
+	}
+	priv.x2, err = randLongTermScalar(rand)
+	if err != nil {
+		return priv, err
+	}
+	priv.y1, err = randLongTermScalar(rand)
+	if err != nil {
+		return priv, err
+	}
+	priv.y2, err = randLongTermScalar(rand)
+	if err != nil {
+		return priv, err
+	}
+	priv.z, err = randLongTermScalar(rand)
+	if err != nil {
+		return priv, err
+	}
+	return priv, nil
 }
 
+// TODO: HANDLE ERROR
 func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoupPublicKey, error) {
 
 	priv, _ := deriveCramerShoupPrivKey(rand)
@@ -112,8 +124,7 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	valid := v0.Equals(v)
 
 	if !valid {
-		err = errors.New("verification of cipher failed")
-		return nil, err
+		return nil, newOtrError("verification of cipher failed")
 	}
 
 	// m = e - u1*z
