@@ -53,8 +53,8 @@ func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoup
 // XXX: use a receiver
 func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) ([]byte, error) {
 
-	b := make([]byte, fieldBytes)
-	r, err := randScalar(rand, b)
+	bytes := make([]byte, fieldBytes)
+	r, err := randScalar(rand, bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -70,20 +70,20 @@ func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) (
 	e.Add(e, m)
 
 	// α = H(u1,u2,e)
-	a := concat(u1, u2, e)
+	al := concat(u1, u2, e)
 	hash := sha3.NewShake256()
-	hash.Write(a)
+	hash.Write(al)
 	var alpha [fieldBytes]byte
 	hash.Read(alpha[:])
 
-	// s = c * r
-	// t = d*(r * alpha)
+	// a = c * r
+	// b = d*(r * alpha)
 	// v = s + t
-	s := ed448.PointScalarMul(pub.c, r)
-	t := ed448.PointScalarMul(pub.d, r)
-	t = ed448.PointScalarMul(t, ed448.NewDecafScalar(alpha[:]))
+	a := ed448.PointScalarMul(pub.c, r)
+	b := ed448.PointScalarMul(pub.d, r)
+	b = ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
 	v := ed448.NewPointFromBytes(nil)
-	v.Add(s, t)
+	v.Add(a, b)
 
 	cipher := concat(u1, u2, e, v)
 	return cipher, nil
@@ -95,21 +95,21 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	u1, u2, e, v := c[0], c[1], c[2], c[3]
 
 	// alpha = H(u1,u2,e)
-	a := concat(u1, u2, e)
+	al := concat(u1, u2, e)
 	hash := sha3.NewShake256()
-	hash.Write(a)
+	hash.Write(al)
 	var alpha [56]byte
 	hash.Read(alpha[:])
 
 	// (u1*(x1+y1*alpha) +u2*(x2+ y2*alpha) == v
-	// (u1*x1)+(u2*x2)
-	tmpU1 := ed448.DoubleScalarMul(u1, u2, priv.x1, priv.x2)
-	// (u1*y1)+(u2*y2)
-	tmpU2 := ed448.DoubleScalarMul(u1, u2, priv.y1, priv.y2)
-	tmpV := ed448.PointScalarMul(tmpU2, ed448.NewDecafScalar(alpha[:]))
-	tmpV.Add(tmpU1, tmpV)
+	// a = (u1*x1)+(u2*x2)
+	a := ed448.DoubleScalarMul(u1, u2, priv.x1, priv.x2)
+	// b = (u1*y1)+(u2*y2)
+	b := ed448.DoubleScalarMul(u1, u2, priv.y1, priv.y2)
+	v0 := ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
+	v0.Add(a, v0)
 
-	valid := tmpV.Equals(v)
+	valid := v0.Equals(v)
 
 	if !valid {
 		err = errors.New("verification of cipher failed")
