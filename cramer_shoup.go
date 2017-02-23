@@ -45,26 +45,20 @@ func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
 
 // TODO: HANDLE ERROR
 func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoupPublicKey, error) {
-
 	priv, _ := deriveCramerShoupPrivKey(rand)
 	pub := &cramerShoupPublicKey{}
-
 	pub.c = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.x1, priv.x2)
 	pub.d = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.y1, priv.y2)
 	pub.h = ed448.PointScalarMul(ed448.BasePoint, priv.z)
-
 	err := isValidPublicKey(pub)
-
 	if err != nil {
 		return nil, nil, err
 	}
-
 	return priv, pub, nil
 }
 
 // XXX: use a receiver
 func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) ([]byte, error) {
-
 	bytes := make([]byte, fieldBytes)
 	r, err := randScalar(rand, bytes)
 	if err != nil {
@@ -96,13 +90,10 @@ func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) (
 	b = ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
 	v := ed448.NewPointFromBytes(nil)
 	v.Add(a, b)
-
-	cipher := concat(u1, u2, e, v)
-	return cipher, nil
+	return concat(u1, u2, e, v), nil
 }
 
 func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte, err error) {
-
 	c := parsePoint(cipher)
 	u1, u2, e, v := c[0], c[1], c[2], c[3]
 
@@ -120,9 +111,7 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	b := ed448.DoubleScalarMul(u1, u2, priv.y1, priv.y2)
 	v0 := ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
 	v0.Add(a, v0)
-
 	valid := v0.Equals(v)
-
 	if !valid {
 		return nil, newOtrError("verification of cipher failed")
 	}
@@ -131,7 +120,6 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	m := ed448.PointScalarMul(u1, priv.z)
 	m.Sub(e, m)
 	message = m.Encode()
-
 	return
 }
 
