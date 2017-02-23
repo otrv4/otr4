@@ -2,19 +2,16 @@ package otr4
 
 import (
 	"encoding/hex"
+
 	. "gopkg.in/check.v1"
 )
-
-type SMPSuite struct{}
-
-var _ = Suite(&SMPSuite{})
 
 func hexToBytes(s string) []byte {
 	bytes, _ := hex.DecodeString(s)
 	return bytes
 }
 
-func (s *SMPSuite) Test_SMPSecretGeneration(c *C) {
+func (s *OTR4Suite) Test_SMPSecretGeneration(c *C) {
 	aliceFingerprint := hexToBytes("0102030405060708090A0B0C0D0E0F101112" +
 		"131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F30" +
 		"3132333435363738393A3B3C3D3E3F40")

@@ -12,7 +12,6 @@ import (
 
 func Test(t *testing.T) { TestingT(t) }
 
-// XXX: move to appropiate place
 type OTR4Suite struct{}
 
 var _ = Suite(&OTR4Suite{})
