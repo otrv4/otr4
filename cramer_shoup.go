@@ -50,10 +50,6 @@ func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoup
 	pub.c = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.x1, priv.x2)
 	pub.d = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.y1, priv.y2)
 	pub.h = ed448.PointScalarMul(ed448.BasePoint, priv.z)
-	err := isValidPublicKey(pub)
-	if err != nil {
-		return nil, nil, err
-	}
 	return priv, pub, nil
 }
 
@@ -121,11 +117,4 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 	m.Sub(e, m)
 	message = m.Encode()
 	return
-}
-
-func isValidPublicKey(pub *cramerShoupPublicKey) error {
-	if !(pub.c.IsValid() && pub.d.IsValid() && pub.h.IsValid()) {
-		return errInvalidPublicKey
-	}
-	return nil
 }
