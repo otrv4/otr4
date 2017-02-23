@@ -40,6 +40,66 @@ func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) boo
 	return c.Equals(out)
 }
 
+func drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (ed448.Point, ed448.Point, error) {
+
+	b1 := make([]byte, fieldBytes)
+	k1, err := randScalar(rand, b1)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b2 := make([]byte, fieldBytes)
+	k2, err := randScalar(rand, b2)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// u = G1*r, u2 = G2*r
+	u11 := ed448.PointScalarMul(ed448.BasePoint, k1)
+	u21 := ed448.PointScalarMul(g2, k1)
+	u12 := ed448.PointScalarMul(ed448.BasePoint, k2)
+	u22 := ed448.PointScalarMul(g2, k2)
+
+	// e = (h*r) + m
+	m := ed448.NewPointFromBytes(nil)
+	m.Decode(message, false)
+
+	e1 := ed448.PointScalarMul(pub1.h, k1)
+	e1.Add(e1, m)
+	e2 := ed448.PointScalarMul(pub2.h, k2)
+	e2.Add(e2, m)
+
+	// α = H(u1,u2,e)
+	a1 := concat(u11, u21, e1)
+	hash1 := sha3.NewShake256()
+	hash1.Write(a1)
+	var alpha1 [fieldBytes]byte
+	hash1.Read(alpha1[:])
+
+	a2 := concat(u12, u22, e2)
+	hash2 := sha3.NewShake256()
+	hash2.Write(a2)
+	var alpha2 [fieldBytes]byte
+	hash2.Read(alpha2[:])
+
+	// s = c * r
+	// t = d*(r * alpha)
+	// v = s + t
+	s1 := ed448.PointScalarMul(pub1.c, k1)
+	t1 := ed448.PointScalarMul(pub1.d, k1)
+	t1 = ed448.PointScalarMul(t1, ed448.NewDecafScalar(alpha1[:]))
+	v1 := ed448.NewPointFromBytes(nil)
+	v1.Add(s1, t1)
+
+	s2 := ed448.PointScalarMul(pub2.c, k2)
+	t2 := ed448.PointScalarMul(pub2.d, k2)
+	t2 = ed448.PointScalarMul(t2, ed448.NewDecafScalar(alpha2[:]))
+	v2 := ed448.NewPointFromBytes(nil)
+	v2.Add(s2, t2)
+
+	return v1, v2, nil
+}
+
 func parse(bytes []byte) []ed448.Scalar {
 	var out []ed448.Scalar
 
