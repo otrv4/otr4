@@ -8,12 +8,10 @@ import (
 )
 
 func drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (ed448.Point, ed448.Point, error) {
-
 	k1, err := randScalar(rand)
 	if err != nil {
 		return nil, nil, err
 	}
-
 	k2, err := randScalar(rand)
 	if err != nil {
 		return nil, nil, err
@@ -74,8 +72,7 @@ func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed4
 	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
-	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub,
-		theirPub, theirPubEcdh, pt1, pt2, pt3, message)
+	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub, theirPub, theirPubEcdh, pt1, pt2, pt3, message)
 	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
 	c1.Sub(c, c2)
 	c1.Sub(c1, c3)
@@ -100,7 +97,6 @@ func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) boo
 
 func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
 	var out []ed448.Scalar
-
 	for i := 0; i < n; i++ {
 		scalar, err := randScalar(rand)
 		if err != nil {
@@ -113,7 +109,6 @@ func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
 
 func parse(bytes []byte) []ed448.Scalar {
 	var out []ed448.Scalar
-
 	for i := 0; i < len(bytes); i += fieldBytes {
 		out = append(out, ed448.NewDecafScalar(bytes[i:i+fieldBytes]))
 	}
@@ -123,7 +118,6 @@ func parse(bytes []byte) []ed448.Scalar {
 // XXX: unify this with parse()
 func parsePoint(bytes []byte) []ed448.Point {
 	var out []ed448.Point
-
 	for i := 0; i < len(bytes); i += fieldBytes {
 		out = append(out, ed448.NewPointFromBytes(bytes[i:i+fieldBytes]))
 	}

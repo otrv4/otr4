@@ -88,12 +88,10 @@ func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pu
 	b = ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
 	csm.v = ed448.NewPointFromBytes(nil)
 	csm.v.Add(a, b)
-
 	return nil
 }
 
 func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (message []byte, err error) {
-
 	// alpha = H(u1,u2,e)
 	al := concat(csm.u1, csm.u2, csm.e)
 	hash := sha3.NewShake256()
@@ -104,13 +102,12 @@ func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (mess
 	// (u1*(x1+y1*alpha) +u2*(x2+ y2*alpha) == v
 	// a = (u1*x1)+(u2*x2)
 	a := ed448.DoubleScalarMul(csm.u1, csm.u2, priv.x1, priv.x2)
+
 	// b = (u1*y1)+(u2*y2)
 	b := ed448.DoubleScalarMul(csm.u1, csm.u2, priv.y1, priv.y2)
 	v0 := ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
 	v0.Add(a, v0)
-
 	valid := v0.Equals(csm.v)
-
 	if !valid {
 		return nil, newOtrError("verification of cipher failed")
 	}
