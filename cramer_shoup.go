@@ -17,6 +17,10 @@ type cramerShoupPublicKey struct {
 	c, d, h ed448.Point
 }
 
+type cramerShoupMessage struct {
+	u1, u2, e, v ed448.Point
+}
+
 func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
 	priv := &cramerShoupPrivateKey{}
 	var err error
@@ -53,26 +57,25 @@ func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoup
 	return priv, pub, nil
 }
 
-// XXX: use a receiver
-func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) ([]byte, error) {
+func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) error {
 	bytes := make([]byte, fieldBytes)
 	r, err := randScalar(rand, bytes)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// u = G1*r, u2 = G2*r
-	u1 := ed448.PointScalarMul(ed448.BasePoint, r)
-	u2 := ed448.PointScalarMul(g2, r)
+	csm.u1 = ed448.PointScalarMul(ed448.BasePoint, r)
+	csm.u2 = ed448.PointScalarMul(g2, r)
 
 	// e = (h*r) + m
 	m := ed448.NewPointFromBytes(nil)
 	m.Decode(message, false)
-	e := ed448.PointScalarMul(pub.h, r)
-	e.Add(e, m)
+	csm.e = ed448.PointScalarMul(pub.h, r)
+	csm.e.Add(csm.e, m)
 
 	// α = H(u1,u2,e)
-	al := concat(u1, u2, e)
+	al := concat(csm.u1, csm.u2, csm.e)
 	hash := sha3.NewShake256()
 	hash.Write(al)
 	var alpha [fieldBytes]byte
@@ -84,17 +87,16 @@ func cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) (
 	a := ed448.PointScalarMul(pub.c, r)
 	b := ed448.PointScalarMul(pub.d, r)
 	b = ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
-	v := ed448.NewPointFromBytes(nil)
-	v.Add(a, b)
-	return concat(u1, u2, e, v), nil
+	csm.v = ed448.NewPointFromBytes(nil)
+	csm.v.Add(a, b)
+
+	return nil
 }
 
-func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte, err error) {
-	c := parsePoint(cipher)
-	u1, u2, e, v := c[0], c[1], c[2], c[3]
+func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (message []byte, err error) {
 
 	// alpha = H(u1,u2,e)
-	al := concat(u1, u2, e)
+	al := concat(csm.u1, csm.u2, csm.e)
 	hash := sha3.NewShake256()
 	hash.Write(al)
 	var alpha [56]byte
@@ -102,19 +104,21 @@ func cramerShoupDec(cipher []byte, priv *cramerShoupPrivateKey) (message []byte,
 
 	// (u1*(x1+y1*alpha) +u2*(x2+ y2*alpha) == v
 	// a = (u1*x1)+(u2*x2)
-	a := ed448.DoubleScalarMul(u1, u2, priv.x1, priv.x2)
+	a := ed448.DoubleScalarMul(csm.u1, csm.u2, priv.x1, priv.x2)
 	// b = (u1*y1)+(u2*y2)
-	b := ed448.DoubleScalarMul(u1, u2, priv.y1, priv.y2)
+	b := ed448.DoubleScalarMul(csm.u1, csm.u2, priv.y1, priv.y2)
 	v0 := ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
 	v0.Add(a, v0)
-	valid := v0.Equals(v)
+
+	valid := v0.Equals(csm.v)
+
 	if !valid {
 		return nil, newOtrError("verification of cipher failed")
 	}
 
 	// m = e - u1*z
-	m := ed448.PointScalarMul(u1, priv.z)
-	m.Sub(e, m)
+	m := ed448.PointScalarMul(csm.u1, priv.z)
+	m.Sub(csm.e, m)
 	message = m.Encode()
 	return
 }
