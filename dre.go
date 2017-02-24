@@ -126,7 +126,7 @@ func parsePoint(bytes []byte) []ed448.Point {
 
 func concat(bytes ...interface{}) (b []byte) {
 	if len(bytes) < 2 {
-		panic("missing concat arguments")
+		panic("programmer error: missing concat arguments")
 	}
 	for _, e := range bytes {
 		switch i := e.(type) {
@@ -137,7 +137,7 @@ func concat(bytes ...interface{}) (b []byte) {
 		case []byte:
 			b = append(b, i...)
 		default:
-			panic("invalid input")
+			panic("programmer error: invalid input")
 		}
 	}
 	return b
