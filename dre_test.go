@@ -40,9 +40,9 @@ func (s *OTR4Suite) Test_Concat(c *C) {
 		0xa8, 0x42, 0x17, 0x09, 0x51, 0xc2, 0xa9, 0x2e,
 	}
 
-	c.Assert(func() { concat() }, Panics, "missing concat arguments")
-	c.Assert(func() { concat(bytes) }, Panics, "missing concat arguments")
-	c.Assert(func() { concat("not a valid input", bytes) }, Panics, "invalid input")
+	c.Assert(func() { concat() }, Panics, "programmer error: missing concat arguments")
+	c.Assert(func() { concat(bytes) }, Panics, "programmer error: missing concat arguments")
+	c.Assert(func() { concat("not a valid input", bytes) }, Panics, "programmer error: invalid input")
 	c.Assert(concat(empty, bytes, testSec, testPubA), DeepEquals, exp)
 }
 
