@@ -7,6 +7,19 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+type drCipher struct {
+	u11, u21, e1, v1, u12, u22, e2, v2 ed448.Point
+}
+
+type nIZKProof struct {
+	l, n1, n2 ed448.Scalar // XXX: this should be big.Int or MPI or byte[]?
+}
+
+type drMessage struct {
+	cipher drCipher
+	proof  nIZKProof
+}
+
 func drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (ed448.Point, ed448.Point, error) {
 	k1, err := randScalar(rand)
 	if err != nil {
