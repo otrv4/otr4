@@ -20,69 +20,75 @@ type drMessage struct {
 	proof  nIZKProof
 }
 
-func drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (ed448.Point, ed448.Point, error) {
+// XXX: name this gamma?
+func (drm *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) error {
+
 	k1, err := randScalar(rand)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	k2, err := randScalar(rand)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 
 	// u = G1*r, u2 = G2*r
-	u11 := ed448.PointScalarMul(ed448.BasePoint, k1)
-	u21 := ed448.PointScalarMul(g2, k1)
-	u12 := ed448.PointScalarMul(ed448.BasePoint, k2)
-	u22 := ed448.PointScalarMul(g2, k2)
+	drm.cipher.u11 = ed448.PointScalarMul(ed448.BasePoint, k1)
+	drm.cipher.u21 = ed448.PointScalarMul(g2, k1)
+	drm.cipher.u12 = ed448.PointScalarMul(ed448.BasePoint, k2)
+	drm.cipher.u22 = ed448.PointScalarMul(g2, k2)
 
 	// e = (h*r) + m
 	m := ed448.NewPointFromBytes(nil)
 	m.Decode(message, false)
 
-	e1 := ed448.PointScalarMul(pub1.h, k1)
-	e1.Add(e1, m)
-	e2 := ed448.PointScalarMul(pub2.h, k2)
-	e2.Add(e2, m)
+	drm.cipher.e1 = ed448.PointScalarMul(pub1.h, k1)
+	drm.cipher.e1.Add(drm.cipher.e1, m)
+	drm.cipher.e2 = ed448.PointScalarMul(pub2.h, k2)
+	drm.cipher.e2.Add(drm.cipher.e2, m)
 
 	// α = H(u1,u2,e)
-	al1 := concat(u11, u21, e1)
 	hash1 := sha3.NewShake256()
-	hash1.Write(al1)
-	var alpha1 [fieldBytes]byte
-	hash1.Read(alpha1[:])
+	hash1.Write(concat(drm.cipher.u11, drm.cipher.u21, drm.cipher.e1))
+	var al1 [fieldBytes]byte
+	hash1.Read(al1[:])
+	alpha1 := ed448.NewDecafScalar(al1[:])
 
-	al2 := concat(u12, u22, e2)
 	hash2 := sha3.NewShake256()
-	hash2.Write(al2)
-	var alpha2 [fieldBytes]byte
-	hash2.Read(alpha2[:])
+	hash2.Write(concat(drm.cipher.u12, drm.cipher.u22, drm.cipher.e2))
+	var al2 [fieldBytes]byte
+	hash2.Read(al2[:])
+	alpha2 := ed448.NewDecafScalar(al2[:])
 
 	// a = c * r
 	// b = d*(r * alpha)
 	// v = s + t
 	a1 := ed448.PointScalarMul(pub1.c, k1)
 	b1 := ed448.PointScalarMul(pub1.d, k1)
-	b1 = ed448.PointScalarMul(b1, ed448.NewDecafScalar(alpha1[:]))
-	v1 := ed448.NewPointFromBytes(nil)
-	v1.Add(a1, b1)
+	b1 = ed448.PointScalarMul(b1, alpha1)
+	drm.cipher.v1 = ed448.NewPointFromBytes(nil)
+	drm.cipher.v1.Add(a1, b1)
 
 	a2 := ed448.PointScalarMul(pub2.c, k2)
 	b2 := ed448.PointScalarMul(pub2.d, k2)
-	b2 = ed448.PointScalarMul(b2, ed448.NewDecafScalar(alpha2[:]))
-	v2 := ed448.NewPointFromBytes(nil)
-	v2.Add(a2, b2)
+	b2 = ed448.PointScalarMul(b2, alpha2)
+	drm.cipher.v2 = ed448.NewPointFromBytes(nil)
+	drm.cipher.v2.Add(a2, b2)
 
-func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2, k1, k2 ed448.Scalar) error {
-
-	bytes1 := make([]byte, fieldBytes)
-	t1, err := randScalar(rand, bytes1)
+	err = drm.proof.genNIZKPK(rand, &drm.cipher, pub1, pub2, alpha1, alpha2, k1, k2)
 	if err != nil {
 		return err
 	}
 
-	bytes2 := make([]byte, fieldBytes)
-	t2, err := randScalar(rand, bytes2)
+	return nil
+}
+
+func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2, k1, k2 ed448.Scalar) error {
+	t1, err := randScalar(rand)
+	if err != nil {
+		return err
+	}
+	t2, err := randScalar(rand)
 	if err != nil {
 		return err
 	}
