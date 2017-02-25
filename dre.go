@@ -73,7 +73,72 @@ func drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (ed
 	v2 := ed448.NewPointFromBytes(nil)
 	v2.Add(a2, b2)
 
-	return v1, v2, nil
+func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2, k1, k2 ed448.Scalar) error {
+
+	bytes1 := make([]byte, fieldBytes)
+	t1, err := randScalar(rand, bytes1)
+	if err != nil {
+		return err
+	}
+
+	bytes2 := make([]byte, fieldBytes)
+	t2, err := randScalar(rand, bytes2)
+	if err != nil {
+		return err
+	}
+
+	// T11 = G1 * t2
+	t11 := ed448.PointScalarMul(ed448.BasePoint, t1)
+	// T21 = G2 * t1
+	t21 := ed448.PointScalarMul(g2, t1)
+	// T31 = (C1 + D1 * α1) * t1
+	t31 := ed448.PointScalarMul(pub1.d, alpha1)
+	t31.Add(pub1.c, t31)
+	t31 = ed448.PointScalarMul(t31, t1)
+
+	// T12 = G1 * t2
+	t12 := ed448.PointScalarMul(ed448.BasePoint, t2)
+	// T22 = G2 * t2
+	t22 := ed448.PointScalarMul(g2, t2)
+	// T32 = (C2 + D2 * α2) * t2
+	t32 := ed448.PointScalarMul(pub2.d, alpha2)
+	t32.Add(pub2.c, t32)
+	t32 = ed448.PointScalarMul(t32, t2)
+
+	// T4 = H1 * t1 - H2 * t2
+	t4 := ed448.NewPointFromBytes(nil)
+	a := ed448.PointScalarMul(pub1.h, t1)
+	b := ed448.PointScalarMul(pub2.h, t2)
+	t4.Sub(a, b)
+
+	// gV = G1 || G2 || q
+	gV := concat(ed448.BasePoint, g2, ed448.ScalarQ)
+	// pV = C1 || D1 || H1 || C2 || D2 || H2
+	pV := concat(pub1.c, pub1.d, pub1.h, pub2.c, pub2.d, pub2.h)
+	// eV = U11 || U21 || E1 || V1 || α1 || U12 || U22 || E2 || V2 || α2
+	eV := concat(m.u11, m.u21, m.e1, m.v1, alpha1, m.u12, m.u22, m.e2, m.v2, alpha2)
+	// zV = T11 || T21 || T31 || T12 || T22 || T32 || T4
+	zV := concat(t11, t21, t31, t12, t22, t32, t4)
+
+	hash := sha3.NewShake256()
+	hash.Write(gV)
+	hash.Write(pV)
+	hash.Write(eV)
+	hash.Write(zV)
+	var l [fieldBytes]byte
+	hash.Read(l[:])
+
+	pf.l = ed448.NewDecafScalar(l[:])
+
+	// ni = ti - l * ki (mod q)
+	pf.n1 = ed448.NewDecafScalar(nil)
+	pf.n2 = ed448.NewDecafScalar(nil)
+	pf.n1.Mul(pf.l, k1)
+	pf.n1.Sub(t1, pf.n1)
+	pf.n2.Mul(pf.l, k2)
+	pf.n2.Sub(t2, pf.n2)
+
+	return nil
 }
 
 func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) ([]byte, error) {
