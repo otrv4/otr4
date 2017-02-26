@@ -88,45 +88,25 @@ func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShou
 		return nil, errImpossibleToDecrypt
 	}
 
+	var m ed448.Point
 	if index == 1 {
-		// XXX: name this verify drMessage?
-		// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
-		// a = (u11*x1)+(u21*x2)
-		a1 := ed448.DoubleScalarMul(gamma.cipher.u11, gamma.cipher.u21, priv.x1, priv.x2)
-		// b = (u11*y1)+(u21*y2)
-		b1 := ed448.DoubleScalarMul(gamma.cipher.u11, gamma.cipher.u21, priv.y1, priv.y2)
-		c1 := ed448.PointScalarMul(b1, alpha1)
-		c1.Add(a1, c1)
-		valid = c1.Equals(gamma.cipher.v1)
+		valid, err = verifyDRMessage(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.v1, alpha1, priv)
 		if !valid {
-			return nil, errImpossibleToDecrypt
+			return nil, err
 		}
-	} else {
-		// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
-		// a1 = (u12*x1)+(u22*x2)
-		a1 := ed448.DoubleScalarMul(gamma.cipher.u12, gamma.cipher.u22, priv.x1, priv.x2)
-		// b1 = (u12*y1)+(u22*y2)
-		b1 := ed448.DoubleScalarMul(gamma.cipher.u12, gamma.cipher.u22, priv.y1, priv.y2)
-		// c = b1 * alpha2
-		c1 := ed448.PointScalarMul(b1, alpha2)
-		// a1 + c
-		c1.Add(a1, c1)
-		valid = c1.Equals(gamma.cipher.v2)
-		if !valid {
-			return nil, errImpossibleToDecrypt
-		}
-	}
-	m := ed448.NewPointFromBytes(nil)
-	if index == 1 {
 		// m = e - u11*z
 		m = ed448.PointScalarMul(gamma.cipher.u11, priv.z)
 		m.Sub(gamma.cipher.e1, m)
 	} else {
+		valid, err = verifyDRMessage(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.v2, alpha2, priv)
+		if !valid {
+			return nil, err
+		}
 		// m = e - u12*z
 		m = ed448.PointScalarMul(gamma.cipher.u12, priv.z)
 		m.Sub(gamma.cipher.e2, m)
-
 	}
+
 	message = m.Encode()
 	return
 }
@@ -264,6 +244,30 @@ func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) boo
 	return c.Equals(out)
 }
 
+func isValidPublicKey(pubs ...*cramerShoupPublicKey) error {
+	for _, pub := range pubs {
+		if !(pub.c.IsValid() && pub.d.IsValid() && pub.h.IsValid()) {
+			return errInvalidPublicKey
+		}
+	}
+	return nil
+}
+func verifyDRMessage(u1, u2, v ed448.Point, alpha ed448.Scalar, priv *cramerShoupPrivateKey) (bool, error) {
+	// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
+	// a = (u11*x1)+(u21*x2)
+	a := ed448.DoubleScalarMul(u1, u2, priv.x1, priv.x2)
+	// b = (u11*y1)+(u21*y2)
+	b := ed448.DoubleScalarMul(u1, u2, priv.y1, priv.y2)
+	c := ed448.PointScalarMul(b, alpha)
+	c.Add(a, c)
+
+	valid := c.Equals(v)
+	if !valid {
+		return false, errImpossibleToDecrypt
+	}
+	return valid, nil
+}
+
 func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
 	var out []ed448.Scalar
 	for i := 0; i < n; i++ {
@@ -274,13 +278,4 @@ func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
 		out = append(out, scalar)
 	}
 	return out, nil
-}
-
-func isValidPublicKey(pubs ...*cramerShoupPublicKey) error {
-	for _, pub := range pubs {
-		if !(pub.c.IsValid() && pub.d.IsValid() && pub.h.IsValid()) {
-			return errInvalidPublicKey
-		}
-	}
-	return nil
 }
