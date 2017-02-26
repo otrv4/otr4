@@ -1,7 +1,6 @@
 package otr4
 
 import (
-	"errors"
 	"io"
 
 	"github.com/twstrike/ed448"
@@ -102,7 +101,7 @@ func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShou
 
 	valid := gamma.proof.verifyNIZKPK(&gamma.cipher, pub1, pub2, alpha1, alpha2)
 	if !valid {
-		return nil, errors.New("not equal")
+		return nil, errImpossibleToDecrypt
 	}
 
 	if index == 1 {
@@ -116,7 +115,7 @@ func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShou
 		c1.Add(a1, c1)
 		valid = c1.Equals(gamma.cipher.v1)
 		if !valid {
-			return nil, newOtrError("verification of cipher failed")
+			return nil, errImpossibleToDecrypt
 		}
 	} else {
 		// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
@@ -130,7 +129,7 @@ func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShou
 		c1.Add(a1, c1)
 		valid = c1.Equals(gamma.cipher.v2)
 		if !valid {
-			return nil, newOtrError("verification of cipher failed")
+			return nil, errImpossibleToDecrypt
 		}
 	}
 	m := ed448.NewPointFromBytes(nil)

@@ -4,6 +4,7 @@ import "fmt"
 
 var errInvalidPublicKey = newOtrError("not a valid public key")
 var notEnoughEntropy = newOtrError("cannot source enough entropy")
+var errImpossibleToDecrypt = newOtrError("cannot decrypt the message")
 
 type otrError struct {
 	msg string
