@@ -48,8 +48,8 @@ func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramer
 	gamma.cipher.e2.Add(gamma.cipher.e2, m)
 
 	// αi = H(u1i,u2i,ei)
-	alpha1 := concatAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
-	alpha2 := concatAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
+	alpha1 := appendAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
+	alpha2 := appendAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
 
 	// ai = ci * ki
 	// bi = di*(ki * αi)
@@ -73,15 +73,15 @@ func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramer
 	return nil
 }
 
-// XXX: validate the public keys
 func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShoupPrivateKey, index int) (message []byte, err error) {
 	err = isValidPublicKey(pub1, pub2)
 	if err != nil {
 		return nil, err
 	}
+
 	// αj = HashToScalar(U1j || U2j || Ej)
-	alpha1 := concatAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
-	alpha2 := concatAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
+	alpha1 := appendAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
+	alpha2 := appendAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
 
 	valid := gamma.proof.verifyNIZKPK(&gamma.cipher, pub1, pub2, alpha1, alpha2)
 	if !valid {
@@ -166,15 +166,15 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	t4.Sub(a, b)
 
 	// gV = G1 || G2 || q
-	gV := concat(ed448.BasePoint, g2, ed448.ScalarQ)
+	gV := appendBytes(ed448.BasePoint, g2, ed448.ScalarQ)
 	// pV = C1 || D1 || H1 || C2 || D2 || H2
-	pV := concat(pub1.c, pub1.d, pub1.h, pub2.c, pub2.d, pub2.h)
+	pV := appendBytes(pub1.c, pub1.d, pub1.h, pub2.c, pub2.d, pub2.h)
 	// eV = U11 || U21 || E1 || V1 || α1 || U12 || U22 || E2 || V2 || α2
-	eV := concat(m.u11, m.u21, m.e1, m.v1, alpha1, m.u12, m.u22, m.e2, m.v2, alpha2)
+	eV := appendBytes(m.u11, m.u21, m.e1, m.v1, alpha1, m.u12, m.u22, m.e2, m.v2, alpha2)
 	// zV = T11 || T21 || T31 || T12 || T22 || T32 || T4
-	zV := concat(t11, t21, t31, t12, t22, t32, t4)
+	zV := appendBytes(t11, t21, t31, t12, t22, t32, t4)
 
-	pf.l = concatAndHash(gV, pV, eV, zV)
+	pf.l = appendAndHash(gV, pV, eV, zV)
 
 	// ni = ti - l * ki (mod q)
 	pf.n1 = ed448.NewDecafScalar(nil)
@@ -218,16 +218,16 @@ func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey,
 	t4.Add(c, t4)
 
 	// gV = G1 || G2 || q
-	gV := concat(ed448.BasePoint, g2, ed448.ScalarQ)
+	gV := appendBytes(ed448.BasePoint, g2, ed448.ScalarQ)
 	// pV = C1 || D1 || H1 || C2 || D2 || H2
-	pV := concat(pub1.c, pub1.d, pub1.h, pub2.c, pub2.d, pub2.h)
+	pV := appendBytes(pub1.c, pub1.d, pub1.h, pub2.c, pub2.d, pub2.h)
 	// eV = U11 || U21 || E1 || V1 || α1 || U12 || U22 || E2 || V2 || α2
-	eV := concat(m.u11, m.u21, m.e1, m.v1, alpha1, m.u12, m.u22, m.e2, m.v2, alpha2)
+	eV := appendBytes(m.u11, m.u21, m.e1, m.v1, alpha1, m.u12, m.u22, m.e2, m.v2, alpha2)
 	// zV = T11 || T21 || T31 || T12 || T22 || T32 || T4
-	zV := concat(t11, t21, t31, t12, t22, t32, t4)
+	zV := appendBytes(t11, t21, t31, t12, t22, t32, t4)
 
 	// l' = HashToScalar(gV || pV || eV || zV)
-	ll := concatAndHash(gV, pV, eV, zV)
+	ll := appendAndHash(gV, pV, eV, zV)
 
 	return pf.l.Equals(ll)
 }
@@ -241,13 +241,13 @@ func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed4
 	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
-	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub, theirPub, theirPubEcdh, pt1, pt2, pt3, message)
+	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub, theirPub, theirPubEcdh, pt1, pt2, pt3, message)
 	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
 	c1.Sub(c, c2)
 	c1.Sub(c1, c3)
 	r1.Mul(c1, ourSec)
 	r1.Sub(t1, r1)
-	sigma := concat(c1, r1, c2, r2, c3, r3)
+	sigma := appendBytes(c1, r1, c2, r2, c3, r3)
 	return sigma, err
 }
 
@@ -257,7 +257,7 @@ func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) boo
 	pt1 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
-	c := concatAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub, ourPub, ourPubEcdh, pt1, pt2, pt3, message)
+	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub, ourPub, ourPubEcdh, pt1, pt2, pt3, message)
 	out := ed448.NewDecafScalar(nil)
 	out.Add(c1, c2)
 	out.Add(out, c3)
@@ -274,42 +274,6 @@ func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
 		out = append(out, scalar)
 	}
 	return out, nil
-}
-
-func parse(bytes []byte) []ed448.Scalar {
-	var out []ed448.Scalar
-	for i := 0; i < len(bytes); i += fieldBytes {
-		out = append(out, ed448.NewDecafScalar(bytes[i:i+fieldBytes]))
-	}
-	return out
-}
-
-// XXX: unify this with parse()
-func parsePoint(bytes []byte) []ed448.Point {
-	var out []ed448.Point
-	for i := 0; i < len(bytes); i += fieldBytes {
-		out = append(out, ed448.NewPointFromBytes(bytes[i:i+fieldBytes]))
-	}
-	return out
-}
-
-func concat(bytes ...interface{}) (b []byte) {
-	if len(bytes) < 2 {
-		panic("programmer error: missing concat arguments")
-	}
-	for _, e := range bytes {
-		switch i := e.(type) {
-		case ed448.Point:
-			b = append(b, i.Encode()...)
-		case ed448.Scalar:
-			b = append(b, i.Encode()...)
-		case []byte:
-			b = append(b, i...)
-		default:
-			panic("programmer error: invalid input")
-		}
-	}
-	return b
 }
 
 func isValidPublicKey(pubs ...*cramerShoupPublicKey) error {

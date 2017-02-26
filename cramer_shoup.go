@@ -74,7 +74,7 @@ func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pu
 	csm.e.Add(csm.e, m)
 
 	// α = H(u1,u2,e)
-	al := concat(csm.u1, csm.u2, csm.e)
+	al := appendBytes(csm.u1, csm.u2, csm.e)
 	hash := sha3.NewShake256()
 	hash.Write(al)
 	var alpha [fieldBytes]byte
@@ -93,7 +93,7 @@ func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pu
 
 func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (message []byte, err error) {
 	// alpha = H(u1,u2,e)
-	al := concat(csm.u1, csm.u2, csm.e)
+	al := appendBytes(csm.u1, csm.u2, csm.e)
 	hash := sha3.NewShake256()
 	hash.Write(al)
 	var alpha [56]byte
