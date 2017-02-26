@@ -56,14 +56,12 @@ func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramer
 	// vi = ai + bi
 	a1 := ed448.PointScalarMul(pub1.c, k1)
 	b1 := ed448.PointScalarMul(pub1.d, k1)
-	b1 = ed448.PointScalarMul(b1, alpha1)
-	gamma.cipher.v1 = ed448.NewPointFromBytes(nil)
-	gamma.cipher.v1.Add(a1, b1)
+	gamma.cipher.v1 = ed448.PointScalarMul(b1, alpha1)
+	gamma.cipher.v1.Add(a1, gamma.cipher.v1)
 	a2 := ed448.PointScalarMul(pub2.c, k2)
 	b2 := ed448.PointScalarMul(pub2.d, k2)
-	b2 = ed448.PointScalarMul(b2, alpha2)
-	gamma.cipher.v2 = ed448.NewPointFromBytes(nil)
-	gamma.cipher.v2.Add(a2, b2)
+	gamma.cipher.v2 = ed448.PointScalarMul(b2, alpha2)
+	gamma.cipher.v2.Add(a2, gamma.cipher.v2)
 
 	err = gamma.proof.genNIZKPK(rand, &gamma.cipher, pub1, pub2, alpha1, alpha2, k1, k2)
 	if err != nil {
@@ -140,10 +138,9 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	t32 = ed448.PointScalarMul(t32, t2)
 
 	// T4 = H1 * t1 - H2 * t2
-	t4 := ed448.NewPointFromBytes(nil)
 	a := ed448.PointScalarMul(pub1.h, t1)
-	b := ed448.PointScalarMul(pub2.h, t2)
-	t4.Sub(a, b)
+	t4 := ed448.PointScalarMul(pub2.h, t2)
+	t4.Sub(a, t4)
 
 	// gV = G1 || G2 || q
 	gV := appendBytes(ed448.BasePoint, g2, ed448.ScalarQ)
@@ -188,14 +185,14 @@ func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey,
 
 	// T4 = H1 * n1 - H2 * n2 + (E1-E2) * l
 	// a = H1 * n1
-	// b = H2 * n2
-	c, d := ed448.NewPointFromBytes(nil), ed448.NewPointFromBytes(nil)
+	// b = H2 * n2 - a
+	c := ed448.NewPointFromBytes(nil)
 	a := ed448.PointScalarMul(pub1.h, pf.n1)
 	b := ed448.PointScalarMul(pub2.h, pf.n2)
-	c.Sub(a, b)
-	d.Sub(m.e1, m.e2)
-	t4 := ed448.PointScalarMul(d, pf.l)
-	t4.Add(c, t4)
+	b.Sub(a, b)
+	c.Sub(m.e1, m.e2)
+	t4 := ed448.PointScalarMul(c, pf.l)
+	t4.Add(b, t4)
 
 	// gV = G1 || G2 || q
 	gV := appendBytes(ed448.BasePoint, g2, ed448.ScalarQ)

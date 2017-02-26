@@ -497,7 +497,7 @@ func (s *OTR4Suite) Test_DREnc(c *C) {
 		},
 	}
 
-	drMessage := &drMessage{}
+	drMessage := new(drMessage)
 	err := drMessage.drEnc(message, fixedRand(randDREData), pub1, pub2)
 
 	c.Assert(drMessage.cipher, DeepEquals, expDRMessage.cipher)
