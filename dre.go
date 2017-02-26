@@ -1,6 +1,7 @@
 package otr4
 
 import (
+	"errors"
 	"io"
 
 	"github.com/twstrike/ed448"
@@ -20,8 +21,8 @@ type drMessage struct {
 	proof  nIZKProof
 }
 
-// XXX: name this gamma?
-func (drm *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) error {
+// XXX: validate the public keys
+func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) error {
 
 	k1, err := randScalar(rand)
 	if err != nil {
@@ -33,29 +34,30 @@ func (drm *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerSh
 	}
 
 	// u = G1*r, u2 = G2*r
-	drm.cipher.u11 = ed448.PointScalarMul(ed448.BasePoint, k1)
-	drm.cipher.u21 = ed448.PointScalarMul(g2, k1)
-	drm.cipher.u12 = ed448.PointScalarMul(ed448.BasePoint, k2)
-	drm.cipher.u22 = ed448.PointScalarMul(g2, k2)
+	gamma.cipher.u11 = ed448.PointScalarMul(ed448.BasePoint, k1)
+	gamma.cipher.u21 = ed448.PointScalarMul(g2, k1)
+	gamma.cipher.u12 = ed448.PointScalarMul(ed448.BasePoint, k2)
+	gamma.cipher.u22 = ed448.PointScalarMul(g2, k2)
 
 	// e = (h*r) + m
 	m := ed448.NewPointFromBytes(nil)
 	m.Decode(message, false)
 
-	drm.cipher.e1 = ed448.PointScalarMul(pub1.h, k1)
-	drm.cipher.e1.Add(drm.cipher.e1, m)
-	drm.cipher.e2 = ed448.PointScalarMul(pub2.h, k2)
-	drm.cipher.e2.Add(drm.cipher.e2, m)
+	gamma.cipher.e1 = ed448.PointScalarMul(pub1.h, k1)
+	gamma.cipher.e1.Add(gamma.cipher.e1, m)
+	gamma.cipher.e2 = ed448.PointScalarMul(pub2.h, k2)
+	gamma.cipher.e2.Add(gamma.cipher.e2, m)
 
+	//XXX: do not repeat this
 	// α = H(u1,u2,e)
 	hash1 := sha3.NewShake256()
-	hash1.Write(concat(drm.cipher.u11, drm.cipher.u21, drm.cipher.e1))
+	hash1.Write(concat(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1))
 	var al1 [fieldBytes]byte
 	hash1.Read(al1[:])
 	alpha1 := ed448.NewDecafScalar(al1[:])
 
 	hash2 := sha3.NewShake256()
-	hash2.Write(concat(drm.cipher.u12, drm.cipher.u22, drm.cipher.e2))
+	hash2.Write(concat(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2))
 	var al2 [fieldBytes]byte
 	hash2.Read(al2[:])
 	alpha2 := ed448.NewDecafScalar(al2[:])
@@ -66,21 +68,84 @@ func (drm *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerSh
 	a1 := ed448.PointScalarMul(pub1.c, k1)
 	b1 := ed448.PointScalarMul(pub1.d, k1)
 	b1 = ed448.PointScalarMul(b1, alpha1)
-	drm.cipher.v1 = ed448.NewPointFromBytes(nil)
-	drm.cipher.v1.Add(a1, b1)
+	gamma.cipher.v1 = ed448.NewPointFromBytes(nil)
+	gamma.cipher.v1.Add(a1, b1)
 
 	a2 := ed448.PointScalarMul(pub2.c, k2)
 	b2 := ed448.PointScalarMul(pub2.d, k2)
 	b2 = ed448.PointScalarMul(b2, alpha2)
-	drm.cipher.v2 = ed448.NewPointFromBytes(nil)
-	drm.cipher.v2.Add(a2, b2)
+	gamma.cipher.v2 = ed448.NewPointFromBytes(nil)
+	gamma.cipher.v2.Add(a2, b2)
 
-	err = drm.proof.genNIZKPK(rand, &drm.cipher, pub1, pub2, alpha1, alpha2, k1, k2)
+	err = gamma.proof.genNIZKPK(rand, &gamma.cipher, pub1, pub2, alpha1, alpha2, k1, k2)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// XXX: validate the public keys
+func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShoupPrivateKey, index int) (message []byte, err error) {
+	// αj = HashToScalar(U1j || U2j || Ej)
+	hash1 := sha3.NewShake256()
+	hash1.Write(concat(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1))
+	var al1 [56]byte
+	hash1.Read(al1[:])
+	alpha1 := ed448.NewDecafScalar(al1[:])
+
+	hash2 := sha3.NewShake256()
+	hash2.Write(concat(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2))
+	var al2 [fieldBytes]byte
+	hash2.Read(al2[:])
+	alpha2 := ed448.NewDecafScalar(al2[:])
+
+	valid := gamma.proof.verifyNIZKPK(&gamma.cipher, pub1, pub2, alpha1, alpha2)
+	if !valid {
+		return nil, errors.New("not equal")
+	}
+
+	if index == 1 {
+		// XXX: name this verify drMessage?
+		// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
+		// a = (u11*x1)+(u21*x2)
+		a1 := ed448.DoubleScalarMul(gamma.cipher.u11, gamma.cipher.u21, priv.x1, priv.x2)
+		// b = (u11*y1)+(u21*y2)
+		b1 := ed448.DoubleScalarMul(gamma.cipher.u11, gamma.cipher.u21, priv.y1, priv.y2)
+		c1 := ed448.PointScalarMul(b1, alpha1)
+		c1.Add(a1, c1)
+		valid = c1.Equals(gamma.cipher.v1)
+		if !valid {
+			return nil, newOtrError("verification of cipher failed")
+		}
+	} else {
+		// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
+		// a1 = (u12*x1)+(u22*x2)
+		a1 := ed448.DoubleScalarMul(gamma.cipher.u12, gamma.cipher.u22, priv.x1, priv.x2)
+		// b1 = (u12*y1)+(u22*y2)
+		b1 := ed448.DoubleScalarMul(gamma.cipher.u12, gamma.cipher.u22, priv.y1, priv.y2)
+		// c = b1 * alpha2
+		c1 := ed448.PointScalarMul(b1, alpha2)
+		// a1 + c
+		c1.Add(a1, c1)
+		valid = c1.Equals(gamma.cipher.v2)
+		if !valid {
+			return nil, newOtrError("verification of cipher failed")
+		}
+	}
+	m := ed448.NewPointFromBytes(nil)
+	if index == 1 {
+		// m = e - u11*z
+		m = ed448.PointScalarMul(gamma.cipher.u11, priv.z)
+		m.Sub(gamma.cipher.e1, m)
+	} else {
+		// m = e - u12*z
+		m = ed448.PointScalarMul(gamma.cipher.u12, priv.z)
+		m.Sub(gamma.cipher.e2, m)
+
+	}
+	message = m.Encode()
+	return
 }
 
 func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2, k1, k2 ed448.Scalar) error {
@@ -145,6 +210,58 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	pf.n2.Sub(t2, pf.n2)
 
 	return nil
+}
+
+func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2 ed448.Scalar) bool {
+	// T1j = G1 * nj + U1j * l
+	t11 := ed448.DoubleScalarMul(ed448.BasePoint, m.u11, pf.n1, pf.l)
+	// T2j = G2 * nj + U2j * l
+	t21 := ed448.DoubleScalarMul(g2, m.u21, pf.n1, pf.l)
+	// T3j = (Cj + Dj * αj) * nj + Vj * l
+	t31 := ed448.PointScalarMul(pub1.d, alpha1)
+	t31.Add(pub1.c, t31)
+	t31 = ed448.DoubleScalarMul(t31, m.v1, pf.n1, pf.l)
+
+	// T1j = G1 * nj + U1j * l
+	t12 := ed448.DoubleScalarMul(ed448.BasePoint, m.u12, pf.n2, pf.l)
+	// T2j = G2 * nj + U2j * l
+	t22 := ed448.DoubleScalarMul(g2, m.u22, pf.n2, pf.l)
+	// T3j = (Cj + Dj * αj) * nj + Vj * l
+	t32 := ed448.PointScalarMul(pub2.d, alpha2)
+	t32.Add(pub2.c, t32)
+	t32 = ed448.DoubleScalarMul(t32, m.v2, pf.n2, pf.l)
+
+	// T4 = H1 * n1 - H2 * n2 + (E1-E2) * l
+	// a = H1 * n1
+	// b = H2 * n2
+	c, d := ed448.NewPointFromBytes(nil), ed448.NewPointFromBytes(nil)
+	a := ed448.PointScalarMul(pub1.h, pf.n1)
+	b := ed448.PointScalarMul(pub2.h, pf.n2)
+	c.Sub(a, b)
+	d.Sub(m.e1, m.e2)
+	t4 := ed448.PointScalarMul(d, pf.l)
+	t4.Add(c, t4)
+
+	// gV = G1 || G2 || q
+	gV := concat(ed448.BasePoint, g2, ed448.ScalarQ)
+	// pV = C1 || D1 || H1 || C2 || D2 || H2
+	pV := concat(pub1.c, pub1.d, pub1.h, pub2.c, pub2.d, pub2.h)
+	// eV = U11 || U21 || E1 || V1 || α1 || U12 || U22 || E2 || V2 || α2
+	eV := concat(m.u11, m.u21, m.e1, m.v1, alpha1, m.u12, m.u22, m.e2, m.v2, alpha2)
+	// zV = T11 || T21 || T31 || T12 || T22 || T32 || T4
+	zV := concat(t11, t21, t31, t12, t22, t32, t4)
+
+	// l' = HashToScalar(gV || pV || eV || zV)
+	hash := sha3.NewShake256()
+	hash.Write(gV)
+	hash.Write(pV)
+	hash.Write(eV)
+	hash.Write(zV)
+	var l1 [fieldBytes]byte
+	hash.Read(l1[:])
+	ll := ed448.NewDecafScalar(l1[:])
+
+	return pf.l.Equals(ll)
 }
 
 func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) ([]byte, error) {
