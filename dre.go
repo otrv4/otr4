@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/twstrike/ed448"
-	"golang.org/x/crypto/sha3"
 )
 
 type drCipher struct {
@@ -20,56 +19,46 @@ type drMessage struct {
 	proof  nIZKProof
 }
 
-// XXX: validate the public keys
-func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) error {
+func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (err error) {
+	err = isValidPublicKey(pub1, pub2)
+	if err != nil {
+		return
+	}
 
 	k1, err := randScalar(rand)
 	if err != nil {
-		return err
+		return
 	}
 	k2, err := randScalar(rand)
 	if err != nil {
-		return err
+		return
 	}
 
-	// u = G1*r, u2 = G2*r
+	// u1i = G1*ki, u2i = G2*ki
 	gamma.cipher.u11 = ed448.PointScalarMul(ed448.BasePoint, k1)
 	gamma.cipher.u21 = ed448.PointScalarMul(g2, k1)
 	gamma.cipher.u12 = ed448.PointScalarMul(ed448.BasePoint, k2)
 	gamma.cipher.u22 = ed448.PointScalarMul(g2, k2)
 
-	// e = (h*r) + m
-	m := ed448.NewPointFromBytes(nil)
-	m.Decode(message, false)
-
+	// ei = (hi*ki) + m
+	m := ed448.NewPointFromBytes(message)
 	gamma.cipher.e1 = ed448.PointScalarMul(pub1.h, k1)
 	gamma.cipher.e1.Add(gamma.cipher.e1, m)
 	gamma.cipher.e2 = ed448.PointScalarMul(pub2.h, k2)
 	gamma.cipher.e2.Add(gamma.cipher.e2, m)
 
-	//XXX: do not repeat this
-	// α = H(u1,u2,e)
-	hash1 := sha3.NewShake256()
-	hash1.Write(concat(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1))
-	var al1 [fieldBytes]byte
-	hash1.Read(al1[:])
-	alpha1 := ed448.NewDecafScalar(al1[:])
+	// αi = H(u1i,u2i,ei)
+	alpha1 := concatAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
+	alpha2 := concatAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
 
-	hash2 := sha3.NewShake256()
-	hash2.Write(concat(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2))
-	var al2 [fieldBytes]byte
-	hash2.Read(al2[:])
-	alpha2 := ed448.NewDecafScalar(al2[:])
-
-	// a = c * r
-	// b = d*(r * alpha)
-	// v = s + t
+	// ai = ci * ki
+	// bi = di*(ki * αi)
+	// vi = ai + bi
 	a1 := ed448.PointScalarMul(pub1.c, k1)
 	b1 := ed448.PointScalarMul(pub1.d, k1)
 	b1 = ed448.PointScalarMul(b1, alpha1)
 	gamma.cipher.v1 = ed448.NewPointFromBytes(nil)
 	gamma.cipher.v1.Add(a1, b1)
-
 	a2 := ed448.PointScalarMul(pub2.c, k2)
 	b2 := ed448.PointScalarMul(pub2.d, k2)
 	b2 = ed448.PointScalarMul(b2, alpha2)
@@ -78,7 +67,7 @@ func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramer
 
 	err = gamma.proof.genNIZKPK(rand, &gamma.cipher, pub1, pub2, alpha1, alpha2, k1, k2)
 	if err != nil {
-		return err
+		return
 	}
 
 	return nil
@@ -86,18 +75,13 @@ func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramer
 
 // XXX: validate the public keys
 func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShoupPrivateKey, index int) (message []byte, err error) {
+	err = isValidPublicKey(pub1, pub2)
+	if err != nil {
+		return nil, err
+	}
 	// αj = HashToScalar(U1j || U2j || Ej)
-	hash1 := sha3.NewShake256()
-	hash1.Write(concat(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1))
-	var al1 [56]byte
-	hash1.Read(al1[:])
-	alpha1 := ed448.NewDecafScalar(al1[:])
-
-	hash2 := sha3.NewShake256()
-	hash2.Write(concat(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2))
-	var al2 [fieldBytes]byte
-	hash2.Read(al2[:])
-	alpha2 := ed448.NewDecafScalar(al2[:])
+	alpha1 := concatAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
+	alpha2 := concatAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
 
 	valid := gamma.proof.verifyNIZKPK(&gamma.cipher, pub1, pub2, alpha1, alpha2)
 	if !valid {
@@ -190,15 +174,7 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	// zV = T11 || T21 || T31 || T12 || T22 || T32 || T4
 	zV := concat(t11, t21, t31, t12, t22, t32, t4)
 
-	hash := sha3.NewShake256()
-	hash.Write(gV)
-	hash.Write(pV)
-	hash.Write(eV)
-	hash.Write(zV)
-	var l [fieldBytes]byte
-	hash.Read(l[:])
-
-	pf.l = ed448.NewDecafScalar(l[:])
+	pf.l = concatAndHash(gV, pV, eV, zV)
 
 	// ni = ti - l * ki (mod q)
 	pf.n1 = ed448.NewDecafScalar(nil)
@@ -251,14 +227,7 @@ func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey,
 	zV := concat(t11, t21, t31, t12, t22, t32, t4)
 
 	// l' = HashToScalar(gV || pV || eV || zV)
-	hash := sha3.NewShake256()
-	hash.Write(gV)
-	hash.Write(pV)
-	hash.Write(eV)
-	hash.Write(zV)
-	var l1 [fieldBytes]byte
-	hash.Read(l1[:])
-	ll := ed448.NewDecafScalar(l1[:])
+	ll := concatAndHash(gV, pV, eV, zV)
 
 	return pf.l.Equals(ll)
 }
@@ -343,6 +312,11 @@ func concat(bytes ...interface{}) (b []byte) {
 	return b
 }
 
-func concatAndHash(bytes ...interface{}) ed448.Scalar {
-	return hashToScalar(concat(bytes...))
+func isValidPublicKey(pubs ...*cramerShoupPublicKey) error {
+	for _, pub := range pubs {
+		if !(pub.c.IsValid() && pub.d.IsValid() && pub.h.IsValid()) {
+			return errInvalidPublicKey
+		}
+	}
+	return nil
 }
