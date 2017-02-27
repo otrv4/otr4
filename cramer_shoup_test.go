@@ -417,6 +417,9 @@ func (s *OTR4Suite) Test_CramerShoupEncryption(c *C) {
 	err := csm.cramerShoupEnc(message, fixedRand(randData), pub)
 	c.Assert(csm, DeepEquals, expCSM)
 	c.Assert(err, IsNil)
+
+	err = csm.cramerShoupEnc(message, fixedRand([]byte{0x00}), pub)
+	c.Assert(err, ErrorMatches, "*.cannot source enough entropy")
 }
 
 func (s *OTR4Suite) Test_CramerShoupDecryption(c *C) {
