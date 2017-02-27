@@ -88,6 +88,12 @@ func (s *OTR4Suite) Test_DRDec(c *C) {
 
 	m, err = testDRMessage.drDec(invalidPub, testPubB, testPrivA, 1)
 	c.Assert(err, ErrorMatches, ".*not a valid public key")
+
+	m, err = testDRMessage.drDec(testPubA, testPubB, testPrivB, 1)
+	c.Assert(err, ErrorMatches, ".*cannot decrypt the message")
+
+	m, err = testDRMessage.drDec(testPubA, testPubB, testPrivA, 2)
+	c.Assert(err, ErrorMatches, ".*cannot decrypt the message")
 }
 
 func (s *OTR4Suite) Test_DREncryptAndDecrypt(c *C) {
