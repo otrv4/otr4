@@ -47,9 +47,11 @@ func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
 	return priv, nil
 }
 
-// TODO: HANDLE ERROR
 func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoupPublicKey, error) {
-	priv, _ := deriveCramerShoupPrivKey(rand)
+	priv, err := deriveCramerShoupPrivKey(rand)
+	if err != nil {
+		return nil, nil, err
+	}
 	pub := &cramerShoupPublicKey{}
 	pub.c = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.x1, priv.x2)
 	pub.d = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.y1, priv.y2)

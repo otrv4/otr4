@@ -183,7 +183,6 @@ func (s *OTR4Suite) Test_CramerShoupKeyDerivation(c *C) {
 			0x6f, 0xe8, 0x4e, 0x81, 0x49, 0x31, 0xfe, 0x3b}),
 	}
 	priv, pub, err := deriveCramerShoupKeys(fixedRand(csRandData))
-
 	c.Assert(expPub.c, DeepEquals, pub.c)
 	c.Assert(expPub.d, DeepEquals, pub.d)
 	c.Assert(expPub.h, DeepEquals, pub.h)
@@ -195,6 +194,11 @@ func (s *OTR4Suite) Test_CramerShoupKeyDerivation(c *C) {
 	c.Assert(expPriv.y2, DeepEquals, priv.y2)
 	c.Assert(expPriv.z, DeepEquals, priv.z)
 
+	priv, pub, err = deriveCramerShoupKeys(fixedRand([]byte{0x00}))
+
+	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
+	c.Assert(priv, IsNil)
+	c.Assert(pub, IsNil)
 }
 
 func (s *OTR4Suite) Test_CramerShoupEncryption(c *C) {
