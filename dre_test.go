@@ -185,8 +185,13 @@ func (s *OTR4Suite) Test_VerificationOfNIZKPK(c *C) {
 		0xbf, 0xce, 0x5e, 0x4e, 0xc7, 0x4d, 0xa7, 0x3e,
 	})
 
-	valid := testDRMessage.proof.verifyNIZKPK(&testDRMessage.cipher, testPubA, testPubB, alpha1, alpha2)
+	valid, err := testDRMessage.proof.verifyNIZKPK(&testDRMessage.cipher, testPubA, testPubB, alpha1, alpha2)
 	c.Assert(valid, Equals, true)
+	c.Assert(err, IsNil)
+
+	inValid, err := testDRMessage.proof.verifyNIZKPK(&testDRMessage.cipher, invalidPub, testPubB, alpha1, alpha2)
+	c.Assert(inValid, Equals, false)
+	c.Assert(err, ErrorMatches, ".*cannot decrypt the message")
 }
 
 func (s *OTR4Suite) Test_VerificationOfDRMessage(c *C) {

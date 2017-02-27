@@ -81,9 +81,9 @@ func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShou
 	alpha1 := appendAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
 	alpha2 := appendAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
 
-	valid := gamma.proof.verifyNIZKPK(&gamma.cipher, pub1, pub2, alpha1, alpha2)
+	valid, err := gamma.proof.verifyNIZKPK(&gamma.cipher, pub1, pub2, alpha1, alpha2)
 	if !valid {
-		return nil, errImpossibleToDecrypt
+		return nil, err
 	}
 
 	var m ed448.Point
@@ -165,7 +165,7 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	return nil
 }
 
-func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2 ed448.Scalar) bool {
+func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2 ed448.Scalar) (bool, error) {
 	// T1j = G1 * nj + U1j * l
 	t11 := ed448.DoubleScalarMul(ed448.BasePoint, m.u11, pf.n1, pf.l)
 	// T2j = G2 * nj + U2j * l
@@ -207,7 +207,12 @@ func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey,
 	// l' = HashToScalar(gV || pV || eV || zV)
 	ll := appendAndHash(gV, pV, eV, zV)
 
-	return pf.l.Equals(ll)
+	valid := pf.l.Equals(ll)
+
+	if !valid {
+		return false, errImpossibleToDecrypt
+	}
+	return true, nil
 }
 
 func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) ([]byte, error) {
