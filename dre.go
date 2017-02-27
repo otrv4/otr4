@@ -158,6 +158,7 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	pf.n2 = ed448.NewDecafScalar(nil)
 	pf.n1.Mul(pf.l, k1)
 	pf.n1.Sub(t1, pf.n1)
+
 	pf.n2.Mul(pf.l, k2)
 	pf.n2.Sub(t2, pf.n2)
 
