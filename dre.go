@@ -262,6 +262,7 @@ func verifyDRMessage(u1, u2, v ed448.Point, alpha ed448.Scalar, priv *cramerShou
 
 	valid := c.Equals(v)
 	if !valid {
+		//XXX: is this the correct err?
 		return false, errImpossibleToDecrypt
 	}
 	return valid, nil
