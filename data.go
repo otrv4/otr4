@@ -35,19 +35,10 @@ func appendAndHash(bytes ...interface{}) ed448.Scalar {
 	return hashToScalar(appendBytes(bytes...))
 }
 
-func parse(bytes []byte) []ed448.Scalar {
+func parseScalar(bytes []byte) []ed448.Scalar {
 	var out []ed448.Scalar
 	for i := 0; i < len(bytes); i += fieldBytes {
 		out = append(out, ed448.NewDecafScalar(bytes[i:i+fieldBytes]))
-	}
-	return out
-}
-
-// XXX: unify this with parse()
-func parsePoint(bytes []byte) []ed448.Point {
-	var out []ed448.Point
-	for i := 0; i < len(bytes); i += fieldBytes {
-		out = append(out, ed448.NewPointFromBytes(bytes[i:i+fieldBytes]))
 	}
 	return out
 }

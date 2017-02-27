@@ -229,7 +229,7 @@ func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed4
 }
 
 func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
-	ps := parse(sigma)
+	ps := parseScalar(sigma)
 	c1, r1, c2, r2, c3, r3 := ps[0], ps[1], ps[2], ps[3], ps[4], ps[5]
 	pt1 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
