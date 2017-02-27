@@ -16,19 +16,19 @@ var _ = Suite(&OTR4Suite{})
 
 func (s *OTR4Suite) Test_Auth(c *C) {
 	message := []byte("our message")
-	out, err := auth(fixedRand(randAuthData), testPubA, testPubB, testPubC, testSec, message)
+	out, err := auth(fixedRand(randAuthData), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
 
 	c.Assert(out, DeepEquals, testSigma)
 	c.Assert(err, IsNil)
 
 	r := make([]byte, 270)
-	out, err = auth(fixedRand(r), testPubA, testPubB, testPubC, testSec, message)
+	out, err = auth(fixedRand(r), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
 
 	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
 	c.Assert(out, IsNil)
 
 	r = make([]byte, 56)
-	out, err = auth(fixedRand(r), testPubA, testPubB, testPubC, testSec, message)
+	out, err = auth(fixedRand(r), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
 
 	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
 	c.Assert(out, IsNil)
@@ -37,47 +37,47 @@ func (s *OTR4Suite) Test_Auth(c *C) {
 func (s *OTR4Suite) Test_Verify(c *C) {
 	message := []byte("our message")
 
-	b := verify(testPubA, testPubB, testPubC, testSigma, message)
+	b := verify(testPubA.h, testPubB.h, testPubC, testSigma, message)
 
 	c.Assert(b, Equals, true)
 }
 
 func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
 	message := []byte("hello, I am a message")
-	sigma, _ := auth(rand.Reader, testPubA, testPubB, testPubC, testSec, message)
-	ver := verify(testPubA, testPubB, testPubC, sigma, message)
+	sigma, _ := auth(rand.Reader, testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
+	ver := verify(testPubA.h, testPubB.h, testPubC, sigma, message)
 	c.Assert(ver, Equals, true)
 
 	fakeMessage := []byte("fake message")
-	ver = verify(testPubA, testPubB, testPubC, sigma, fakeMessage)
+	ver = verify(testPubA.h, testPubB.h, testPubC, sigma, fakeMessage)
 	c.Assert(ver, Equals, false)
 
-	ver = verify(testPubB, testPubB, testPubC, sigma, message)
+	ver = verify(testPubB.h, testPubB.h, testPubC, sigma, message)
 	c.Assert(ver, Equals, false)
 
-	ver = verify(testPubA, testPubA, testPubC, sigma, message)
+	ver = verify(testPubA.h, testPubA.h, testPubC, sigma, message)
 	c.Assert(ver, Equals, false)
 
-	ver = verify(testPubA, testPubB, testPubB, sigma, message)
+	ver = verify(testPubA.h, testPubB.h, testPubB.h, sigma, message)
 	c.Assert(ver, Equals, false)
 
-	ver = verify(testPubA, testPubB, testPubC, testSigma, message)
+	ver = verify(testPubA.h, testPubB.h, testPubC, testSigma, message)
 	c.Assert(ver, Equals, false)
 }
 
 func (s *OTR4Suite) Test_DREnc(c *C) {
 	drMessage := new(drMessage)
-	err := drMessage.drEnc(keyMessage, fixedRand(randDREData), pubA, pubB)
+	err := drMessage.drEnc(testMessage, fixedRand(randDREData), testPubA, testPubB)
 
-	c.Assert(drMessage.cipher, DeepEquals, expDRMessage.cipher)
-	c.Assert(drMessage.proof, DeepEquals, expDRMessage.proof)
+	c.Assert(drMessage.cipher, DeepEquals, testDRMessage.cipher)
+	c.Assert(drMessage.proof, DeepEquals, testDRMessage.proof)
 	c.Assert(err, IsNil)
 }
 
 func (s *OTR4Suite) Test_DRDec(c *C) {
-	m, err := expDRMessage.drDec(pubA, pubB, privA, 1)
+	m, err := testDRMessage.drDec(testPubA, testPubB, testPrivA, 1)
 
-	c.Assert(m, DeepEquals, keyMessage)
+	c.Assert(m, DeepEquals, testMessage)
 	c.Assert(err, IsNil)
 }
 
