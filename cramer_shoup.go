@@ -101,7 +101,7 @@ func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (mess
 	v0.Add(a, v0)
 	valid := v0.Equals(csm.v)
 	if !valid {
-		return nil, newOtrError("verification of cipher failed")
+		return nil, errImpossibleToDecrypt
 	}
 
 	// m = e - u1*z

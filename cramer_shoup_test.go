@@ -586,7 +586,7 @@ func (s *OTR4Suite) Test_CramerShoupDecryption(c *C) {
 	}
 
 	_, err := cipher.cramerShoupDec(priv)
-	c.Assert(err, ErrorMatches, ".*verification of cipher failed")
+	c.Assert(err, ErrorMatches, ".*cannot decrypt the message")
 }
 
 func (s *OTR4Suite) Test_CramerShoupEncryptAndDecrypt(c *C) {
