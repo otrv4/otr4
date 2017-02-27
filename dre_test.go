@@ -66,12 +66,18 @@ func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
 }
 
 func (s *OTR4Suite) Test_DREnc(c *C) {
-	drMessage := new(drMessage)
-	err := drMessage.drEnc(testMessage, fixedRand(randDREData), testPubA, testPubB)
+	m := new(drMessage)
+	err := m.drEnc(testMessage, fixedRand(randDREData), testPubA, testPubB)
 
-	c.Assert(drMessage.cipher, DeepEquals, testDRMessage.cipher)
-	c.Assert(drMessage.proof, DeepEquals, testDRMessage.proof)
+	c.Assert(m.cipher, DeepEquals, testDRMessage.cipher)
+	c.Assert(m.proof, DeepEquals, testDRMessage.proof)
 	c.Assert(err, IsNil)
+
+	err = m.drEnc(testMessage, fixedRand(randDREData), invalidPub, testPubB)
+	c.Assert(err, ErrorMatches, ".*not a valid public key")
+
+	err = m.drEnc(testMessage, fixedRand([]byte{0x00}), testPubA, testPubB)
+	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
 }
 
 func (s *OTR4Suite) Test_DRDec(c *C) {
