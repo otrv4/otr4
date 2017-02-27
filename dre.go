@@ -250,6 +250,7 @@ func isValidPublicKey(pubs ...*cramerShoupPublicKey) error {
 	}
 	return nil
 }
+
 func verifyDRMessage(u1, u2, v ed448.Point, alpha ed448.Scalar, priv *cramerShoupPrivateKey) (bool, error) {
 	// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
 	// a = (u11*x1)+(u21*x2)
