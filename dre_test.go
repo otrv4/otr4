@@ -68,7 +68,6 @@ func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
 func (s *OTR4Suite) Test_DREnc(c *C) {
 	m := new(drMessage)
 	err := m.drEnc(testMessage, fixedRand(randDREData), testPubA, testPubB)
-
 	c.Assert(m.cipher, DeepEquals, testDRMessage.cipher)
 	c.Assert(m.proof, DeepEquals, testDRMessage.proof)
 	c.Assert(err, IsNil)
@@ -82,9 +81,11 @@ func (s *OTR4Suite) Test_DREnc(c *C) {
 
 func (s *OTR4Suite) Test_DRDec(c *C) {
 	m, err := testDRMessage.drDec(testPubA, testPubB, testPrivA, 1)
-
 	c.Assert(m, DeepEquals, testMessage)
 	c.Assert(err, IsNil)
+
+	m, err = testDRMessage.drDec(invalidPub, testPubB, testPrivA, 1)
+	c.Assert(err, ErrorMatches, ".*not a valid public key")
 }
 
 func (s *OTR4Suite) Test_DREncryptAndDecrypt(c *C) {
