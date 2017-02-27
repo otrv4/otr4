@@ -3,8 +3,6 @@ package otr4
 import (
 	"io"
 
-	"golang.org/x/crypto/sha3"
-
 	"github.com/twstrike/ed448"
 )
 
@@ -76,18 +74,14 @@ func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pu
 	csm.e.Add(csm.e, m)
 
 	// α = H(u1,u2,e)
-	al := appendBytes(csm.u1, csm.u2, csm.e)
-	hash := sha3.NewShake256()
-	hash.Write(al)
-	var alpha [fieldBytes]byte
-	hash.Read(alpha[:])
+	alpha := appendAndHash(csm.u1, csm.u2, csm.e)
 
 	// a = c * r
 	// b = d*(r * alpha)
 	// v = s + t
 	a := ed448.PointScalarMul(pub.c, r)
 	b := ed448.PointScalarMul(pub.d, r)
-	b = ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
+	b = ed448.PointScalarMul(b, alpha)
 	csm.v = ed448.NewPointFromBytes(nil)
 	csm.v.Add(a, b)
 	return nil
@@ -95,11 +89,7 @@ func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pu
 
 func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (message []byte, err error) {
 	// alpha = H(u1,u2,e)
-	al := appendBytes(csm.u1, csm.u2, csm.e)
-	hash := sha3.NewShake256()
-	hash.Write(al)
-	var alpha [56]byte
-	hash.Read(alpha[:])
+	alpha := appendAndHash(csm.u1, csm.u2, csm.e)
 
 	// (u1*(x1+y1*alpha) +u2*(x2+ y2*alpha) == v
 	// a = (u1*x1)+(u2*x2)
@@ -107,7 +97,7 @@ func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (mess
 
 	// b = (u1*y1)+(u2*y2)
 	b := ed448.DoubleScalarMul(csm.u1, csm.u2, priv.y1, priv.y2)
-	v0 := ed448.PointScalarMul(b, ed448.NewDecafScalar(alpha[:]))
+	v0 := ed448.PointScalarMul(b, alpha)
 	v0.Add(a, v0)
 	valid := v0.Equals(csm.v)
 	if !valid {
