@@ -114,10 +114,11 @@ func (s *OTR4Suite) Test_DREncryptAndDecrypt(c *C) {
 	err = drMessage.drEnc(message, rand.Reader, pub1, pub2)
 
 	expMessage1, err := drMessage.drDec(pub1, pub2, priv1, 1)
-	expMessage2, err := drMessage.drDec(pub1, pub2, priv2, 2)
-	c.Assert(expMessage1, DeepEquals, message)
-	c.Assert(expMessage2, DeepEquals, message)
 	c.Assert(err, IsNil)
+	c.Assert(expMessage1, DeepEquals, message)
+	expMessage2, err := drMessage.drDec(pub1, pub2, priv2, 2)
+	c.Assert(err, IsNil)
+	c.Assert(expMessage2, DeepEquals, message)
 }
 
 func (s *OTR4Suite) Test_GenerationOfNIZKPK(c *C) {

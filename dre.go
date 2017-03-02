@@ -71,6 +71,7 @@ func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramer
 	return nil
 }
 
+// XXX: the indexes may not be necessary
 func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShoupPrivateKey, index int) (message []byte, err error) {
 	err = isValidPublicKey(pub1, pub2)
 	if err != nil {
