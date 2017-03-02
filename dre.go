@@ -82,7 +82,7 @@ func (gamma *drMessage) drDec(pub1, pub2 *cramerShoupPublicKey, priv *cramerShou
 	alpha1 := appendAndHash(gamma.cipher.u11, gamma.cipher.u21, gamma.cipher.e1)
 	alpha2 := appendAndHash(gamma.cipher.u12, gamma.cipher.u22, gamma.cipher.e2)
 
-	valid, err := gamma.proof.verifyNIZKPK(&gamma.cipher, pub1, pub2, alpha1, alpha2)
+	valid, err := gamma.proof.isValid(&gamma.cipher, pub1, pub2, alpha1, alpha2)
 	if !valid {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	return nil
 }
 
-func (pf *nIZKProof) verifyNIZKPK(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2 ed448.Scalar) (bool, error) {
+func (pf *nIZKProof) isValid(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2 ed448.Scalar) (bool, error) {
 	// T1j = G1 * nj + U1j * l
 	t11 := ed448.DoubleScalarMul(ed448.BasePoint, m.u11, pf.n1, pf.l)
 	// T2j = G2 * nj + U2j * l
