@@ -14,7 +14,7 @@ func randScalar(r io.Reader) (ed448.Scalar, error) {
 	if err != nil {
 		return nil, notEnoughEntropy
 	}
-	return ed448.NewDecafScalar(b), nil
+	return ed448.NewScalar(b), nil
 }
 
 func randLongTermScalar(r io.Reader) (ed448.Scalar, error) {
@@ -28,5 +28,5 @@ func randLongTermScalar(r io.Reader) (ed448.Scalar, error) {
 	hash.Write([]byte("cramershoup_secret"))
 	var out [fieldBytes]byte
 	hash.Read(out[:])
-	return ed448.NewDecafScalar(out[:]), nil
+	return ed448.NewScalar(out[:]), nil
 }

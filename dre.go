@@ -155,8 +155,7 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 	pf.l = appendAndHash(gV, pV, eV, zV)
 
 	// ni = ti - l * ki (mod q)
-	pf.n1 = ed448.NewDecafScalar(nil)
-	pf.n2 = ed448.NewDecafScalar(nil)
+	pf.n1, pf.n2 = ed448.NewScalar(), ed448.NewScalar()
 	pf.n1.Mul(pf.l, k1)
 	pf.n1.Sub(t1, pf.n1)
 
@@ -188,7 +187,7 @@ func (pf *nIZKProof) isValid(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alph
 	// T4 = H1 * n1 - H2 * n2 + (E1-E2) * l
 	// a = H1 * n1
 	// b = H2 * n2 - a
-	c := ed448.NewPointFromBytes(nil)
+	c := ed448.NewPointFromBytes()
 	a := ed448.PointScalarMul(pub1.h, pf.n1)
 	b := ed448.PointScalarMul(pub2.h, pf.n2)
 	b.Sub(a, b)
@@ -226,7 +225,7 @@ func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed4
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
 	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub, theirPub, theirPubEcdh, pt1, pt2, pt3, message)
-	c1, r1 := ed448.NewDecafScalar(nil), ed448.NewDecafScalar(nil)
+	c1, r1 := ed448.NewScalar(), ed448.NewScalar()
 	c1.Sub(c, c2)
 	c1.Sub(c1, c3)
 	r1.Mul(c1, ourSec)
@@ -242,7 +241,7 @@ func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) boo
 	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
 	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
 	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub, ourPub, ourPubEcdh, pt1, pt2, pt3, message)
-	out := ed448.NewDecafScalar(nil)
+	out := ed448.NewScalar()
 	out.Add(c1, c2)
 	out.Add(out, c3)
 	return c.Equals(out)

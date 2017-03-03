@@ -68,7 +68,7 @@ func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pu
 	csm.u2 = ed448.PointScalarMul(g2, r)
 
 	// e = (h*r) + m
-	m := ed448.NewPointFromBytes(nil)
+	m := ed448.NewPointFromBytes()
 	m.Decode(message, false)
 	csm.e = ed448.PointScalarMul(pub.h, r)
 	csm.e.Add(csm.e, m)
@@ -82,7 +82,7 @@ func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pu
 	a := ed448.PointScalarMul(pub.c, r)
 	b := ed448.PointScalarMul(pub.d, r)
 	b = ed448.PointScalarMul(b, alpha)
-	csm.v = ed448.NewPointFromBytes(nil)
+	csm.v = ed448.NewPointFromBytes()
 	csm.v.Add(a, b)
 	return nil
 }
