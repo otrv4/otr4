@@ -51,8 +51,8 @@ func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoup
 		return nil, nil, err
 	}
 	pub := &cramerShoupPublicKey{}
-	pub.c = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.x1, priv.x2)
-	pub.d = ed448.DoubleScalarMul(ed448.BasePoint, g2, priv.y1, priv.y2)
+	pub.c = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, priv.x1, priv.x2)
+	pub.d = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, priv.y1, priv.y2)
 	pub.h = ed448.PointScalarMul(ed448.BasePoint, priv.z)
 	return priv, pub, nil
 }
@@ -93,10 +93,10 @@ func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (mess
 
 	// (u1*(x1+y1*alpha) +u2*(x2+ y2*alpha) == v
 	// a = (u1*x1)+(u2*x2)
-	a := ed448.DoubleScalarMul(csm.u1, csm.u2, priv.x1, priv.x2)
+	a := ed448.PointDoubleScalarMul(csm.u1, csm.u2, priv.x1, priv.x2)
 
 	// b = (u1*y1)+(u2*y2)
-	b := ed448.DoubleScalarMul(csm.u1, csm.u2, priv.y1, priv.y2)
+	b := ed448.PointDoubleScalarMul(csm.u1, csm.u2, priv.y1, priv.y2)
 	v0 := ed448.PointScalarMul(b, alpha)
 	v0.Add(a, v0)
 	valid := v0.Equals(csm.v)

@@ -167,22 +167,22 @@ func (pf *nIZKProof) genNIZKPK(rand io.Reader, m *drCipher, pub1, pub2 *cramerSh
 
 func (pf *nIZKProof) isValid(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alpha1, alpha2 ed448.Scalar) (bool, error) {
 	// T1j = G1 * nj + U1j * l
-	t11 := ed448.DoubleScalarMul(ed448.BasePoint, m.u11, pf.n1, pf.l)
+	t11 := ed448.PointDoubleScalarMul(ed448.BasePoint, m.u11, pf.n1, pf.l)
 	// T2j = G2 * nj + U2j * l
-	t21 := ed448.DoubleScalarMul(g2, m.u21, pf.n1, pf.l)
+	t21 := ed448.PointDoubleScalarMul(g2, m.u21, pf.n1, pf.l)
 	// T3j = (Cj + Dj * αj) * nj + Vj * l
 	t31 := ed448.PointScalarMul(pub1.d, alpha1)
 	t31.Add(pub1.c, t31)
-	t31 = ed448.DoubleScalarMul(t31, m.v1, pf.n1, pf.l)
+	t31 = ed448.PointDoubleScalarMul(t31, m.v1, pf.n1, pf.l)
 
 	// T1j = G1 * nj + U1j * l
-	t12 := ed448.DoubleScalarMul(ed448.BasePoint, m.u12, pf.n2, pf.l)
+	t12 := ed448.PointDoubleScalarMul(ed448.BasePoint, m.u12, pf.n2, pf.l)
 	// T2j = G2 * nj + U2j * l
-	t22 := ed448.DoubleScalarMul(g2, m.u22, pf.n2, pf.l)
+	t22 := ed448.PointDoubleScalarMul(g2, m.u22, pf.n2, pf.l)
 	// T3j = (Cj + Dj * αj) * nj + Vj * l
 	t32 := ed448.PointScalarMul(pub2.d, alpha2)
 	t32.Add(pub2.c, t32)
-	t32 = ed448.DoubleScalarMul(t32, m.v2, pf.n2, pf.l)
+	t32 = ed448.PointDoubleScalarMul(t32, m.v2, pf.n2, pf.l)
 
 	// T4 = H1 * n1 - H2 * n2 + (E1-E2) * l
 	// a = H1 * n1
@@ -222,8 +222,8 @@ func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed4
 	}
 	t1, c2, c3, r2, r3 := ap[0], ap[1], ap[2], ap[3], ap[4]
 	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
-	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
-	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
+	pt2 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
+	pt3 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
 	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub, theirPub, theirPubEcdh, pt1, pt2, pt3, message)
 	c1, r1 := ed448.NewScalar(), ed448.NewScalar()
 	c1.Sub(c, c2)
@@ -237,9 +237,9 @@ func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed4
 func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
 	ps := parseScalar(sigma)
 	c1, r1, c2, r2, c3, r3 := ps[0], ps[1], ps[2], ps[3], ps[4], ps[5]
-	pt1 := ed448.DoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
-	pt2 := ed448.DoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
-	pt3 := ed448.DoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
+	pt1 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
+	pt2 := ed448.PointDoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
+	pt3 := ed448.PointDoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
 	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub, ourPub, ourPubEcdh, pt1, pt2, pt3, message)
 	out := ed448.NewScalar()
 	out.Add(c1, c2)
@@ -249,7 +249,7 @@ func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) boo
 
 func isValidPublicKey(pubs ...*cramerShoupPublicKey) error {
 	for _, pub := range pubs {
-		if !(pub.c.IsValid() && pub.d.IsValid() && pub.h.IsValid()) {
+		if !(pub.c.IsOnCurve() && pub.d.IsOnCurve() && pub.h.IsOnCurve()) {
 			return errInvalidPublicKey
 		}
 	}
@@ -259,9 +259,9 @@ func isValidPublicKey(pubs ...*cramerShoupPublicKey) error {
 func verifyDRMessage(u1, u2, v ed448.Point, alpha ed448.Scalar, priv *cramerShoupPrivateKey) (bool, error) {
 	// U1i * x1i + U2i * x2i + (U1i * y1i + U2i * y2i) * αi ≟ Vi
 	// a = (u11*x1)+(u21*x2)
-	a := ed448.DoubleScalarMul(u1, u2, priv.x1, priv.x2)
+	a := ed448.PointDoubleScalarMul(u1, u2, priv.x1, priv.x2)
 	// b = (u11*y1)+(u21*y2)
-	b := ed448.DoubleScalarMul(u1, u2, priv.y1, priv.y2)
+	b := ed448.PointDoubleScalarMul(u1, u2, priv.y1, priv.y2)
 	c := ed448.PointScalarMul(b, alpha)
 	c.Add(a, c)
 
