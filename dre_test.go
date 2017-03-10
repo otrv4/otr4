@@ -16,57 +16,6 @@ type OTR4Suite struct{}
 
 var _ = Suite(&OTR4Suite{})
 
-func (s *OTR4Suite) Test_Auth(c *C) {
-	message := []byte("our message")
-	out, err := auth(fixedRand(randAuthData), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
-
-	c.Assert(out, DeepEquals, testSigma)
-	c.Assert(err, IsNil)
-
-	r := make([]byte, 270)
-	out, err = auth(fixedRand(r), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
-
-	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
-	c.Assert(out, IsNil)
-
-	r = make([]byte, 56)
-	out, err = auth(fixedRand(r), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
-
-	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
-	c.Assert(out, IsNil)
-}
-
-func (s *OTR4Suite) Test_Verify(c *C) {
-	message := []byte("our message")
-
-	b := verify(testPubA.h, testPubB.h, testPubC, testSigma, message)
-
-	c.Assert(b, Equals, true)
-}
-
-func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
-	message := []byte("hello, I am a message")
-	sigma, _ := auth(rand.Reader, testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
-	ver := verify(testPubA.h, testPubB.h, testPubC, sigma, message)
-	c.Assert(ver, Equals, true)
-
-	fakeMessage := []byte("fake message")
-	ver = verify(testPubA.h, testPubB.h, testPubC, sigma, fakeMessage)
-	c.Assert(ver, Equals, false)
-
-	ver = verify(testPubB.h, testPubB.h, testPubC, sigma, message)
-	c.Assert(ver, Equals, false)
-
-	ver = verify(testPubA.h, testPubA.h, testPubC, sigma, message)
-	c.Assert(ver, Equals, false)
-
-	ver = verify(testPubA.h, testPubB.h, testPubB.h, sigma, message)
-	c.Assert(ver, Equals, false)
-
-	ver = verify(testPubA.h, testPubB.h, testPubC, testSigma, message)
-	c.Assert(ver, Equals, false)
-}
-
 func (s *OTR4Suite) Test_DREnc(c *C) {
 	m := new(drMessage)
 	err := m.drEnc(testMessage, fixedRand(randDREData), testPubA, testPubB)
@@ -219,4 +168,76 @@ func (s *OTR4Suite) Test_VerificationOfDRMessage(c *C) {
 	invalid, err := verifyDRMessage(testDRMessage.cipher.u22, testDRMessage.cipher.u21, testDRMessage.cipher.v1, alpha1, testPrivA)
 	c.Assert(invalid, Equals, false)
 	c.Assert(err, ErrorMatches, "*.cannot decrypt the message")
+}
+
+func (s *OTR4Suite) Test_GenerateAuthParams(c *C) {
+	sigma := new(authMessage)
+
+	r := make([]byte, 55)
+	err := sigma.generateAuthParams(fixedRand(r))
+
+	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
+
+	r = make([]byte, 111)
+	err = sigma.generateAuthParams(fixedRand(r))
+
+	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
+
+	r = make([]byte, 117)
+	err = sigma.generateAuthParams(fixedRand(r))
+
+	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
+}
+
+func (s *OTR4Suite) Test_Auth(c *C) {
+	message := []byte("our message")
+	sigma := new(authMessage)
+	err := sigma.auth(fixedRand(randAuthData), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
+
+	c.Assert(sigma, DeepEquals, testSigma)
+	c.Assert(err, IsNil)
+
+	r := make([]byte, 270)
+	err = sigma.auth(fixedRand(r), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
+
+	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
+
+	r = make([]byte, 56)
+	err = sigma.auth(fixedRand(r), testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
+
+	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
+}
+
+func (s *OTR4Suite) Test_Verify(c *C) {
+	message := []byte("our message")
+
+	b := testSigma.verify(testPubA.h, testPubB.h, testPubC, message)
+
+	c.Assert(b, Equals, true)
+}
+
+func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
+	sigma := new(authMessage)
+	message := []byte("hello, I am a message")
+	fakeMessage := []byte("fake message")
+
+	err := sigma.auth(rand.Reader, testPubA.h, testPubB.h, testPubC, testPrivA.z, message)
+	ver := sigma.verify(testPubA.h, testPubB.h, testPubC, message)
+	c.Assert(err, IsNil)
+	c.Assert(ver, Equals, true)
+
+	ver = sigma.verify(testPubA.h, testPubB.h, testPubC, fakeMessage)
+	c.Assert(ver, Equals, false)
+
+	ver = sigma.verify(testPubB.h, testPubB.h, testPubC, message)
+	c.Assert(ver, Equals, false)
+
+	ver = sigma.verify(testPubA.h, testPubA.h, testPubC, message)
+	c.Assert(ver, Equals, false)
+
+	ver = sigma.verify(testPubA.h, testPubB.h, testPubB.h, message)
+	c.Assert(ver, Equals, false)
+
+	ver = testSigma.verify(testPubA.h, testPubB.h, testPubC, message)
+	c.Assert(ver, Equals, false)
 }

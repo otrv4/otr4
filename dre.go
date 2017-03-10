@@ -19,6 +19,10 @@ type drMessage struct {
 	proof  nIZKProof
 }
 
+type authMessage struct {
+	c1, r1, c2, r2, c3, r3 ed448.Scalar // XXX: this should be big.Int or MPI or byte[]?
+}
+
 func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (err error) {
 	err = isValidPublicKey(pub1, pub2)
 	if err != nil {
@@ -215,35 +219,37 @@ func (pf *nIZKProof) isValid(m *drCipher, pub1, pub2 *cramerShoupPublicKey, alph
 	return true, nil
 }
 
-func auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) ([]byte, error) {
-	ap, err := generateAuthParams(rand, 5)
+func (sigma *authMessage) auth(rand io.Reader, ourPub, theirPub, theirPubEcdh ed448.Point, ourSec ed448.Scalar, message []byte) error {
+	t1, err := randScalar(rand)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	t1, c2, c3, r2, r3 := ap[0], ap[1], ap[2], ap[3], ap[4]
+
+	err = sigma.generateAuthParams(rand)
+	if err != nil {
+		return err
+	}
+
 	pt1 := ed448.PointScalarMul(ed448.BasePoint, t1)
-	pt2 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPub, r2, c2)
-	pt3 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPubEcdh, r3, c3)
+	pt2 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPub, sigma.r2, sigma.c2)
+	pt3 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPubEcdh, sigma.r3, sigma.c3)
 	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, ourPub, theirPub, theirPubEcdh, pt1, pt2, pt3, message)
-	c1, r1 := ed448.NewScalar(), ed448.NewScalar()
-	c1.Sub(c, c2)
-	c1.Sub(c1, c3)
-	r1.Mul(c1, ourSec)
-	r1.Sub(t1, r1)
-	sigma := appendBytes(c1, r1, c2, r2, c3, r3)
-	return sigma, err
+	sigma.c1, sigma.r1 = ed448.NewScalar(), ed448.NewScalar()
+	sigma.c1.Sub(c, sigma.c2)
+	sigma.c1.Sub(sigma.c1, sigma.c3)
+	sigma.r1.Mul(sigma.c1, ourSec)
+	sigma.r1.Sub(t1, sigma.r1)
+	return nil
 }
 
-func verify(theirPub, ourPub, ourPubEcdh ed448.Point, sigma, message []byte) bool {
-	ps := parseScalar(sigma)
-	c1, r1, c2, r2, c3, r3 := ps[0], ps[1], ps[2], ps[3], ps[4], ps[5]
-	pt1 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPub, r1, c1)
-	pt2 := ed448.PointDoubleScalarMul(ed448.BasePoint, ourPub, r2, c2)
-	pt3 := ed448.PointDoubleScalarMul(ed448.BasePoint, ourPubEcdh, r3, c3)
+func (sigma *authMessage) verify(theirPub, ourPub, ourPubEcdh ed448.Point, message []byte) bool {
+	pt1 := ed448.PointDoubleScalarMul(ed448.BasePoint, theirPub, sigma.r1, sigma.c1)
+	pt2 := ed448.PointDoubleScalarMul(ed448.BasePoint, ourPub, sigma.r2, sigma.c2)
+	pt3 := ed448.PointDoubleScalarMul(ed448.BasePoint, ourPubEcdh, sigma.r3, sigma.c3)
 	c := appendAndHash(ed448.BasePoint, ed448.ScalarQ, theirPub, ourPub, ourPubEcdh, pt1, pt2, pt3, message)
 	out := ed448.NewScalar()
-	out.Add(c1, c2)
-	out.Add(out, c3)
+	out.Add(sigma.c1, sigma.c2)
+	out.Add(out, sigma.c3)
 	return c.Equals(out)
 }
 
@@ -273,14 +279,28 @@ func verifyDRMessage(u1, u2, v ed448.Point, alpha ed448.Scalar, priv *cramerShou
 	return valid, nil
 }
 
-func generateAuthParams(rand io.Reader, n int) ([]ed448.Scalar, error) {
-	var out []ed448.Scalar
-	for i := 0; i < n; i++ {
-		scalar, err := randScalar(rand)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, scalar)
+func (sigma *authMessage) generateAuthParams(rand io.Reader) error {
+	var err error
+
+	sigma.c2, err = randScalar(rand)
+	if err != nil {
+		return err
 	}
-	return out, nil
+
+	sigma.c3, err = randScalar(rand)
+	if err != nil {
+		return err
+	}
+
+	sigma.r2, err = randScalar(rand)
+	if err != nil {
+		return err
+	}
+
+	sigma.r3, err = randScalar(rand)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
