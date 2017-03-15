@@ -19,6 +19,7 @@ type cramerShoupMessage struct {
 	u1, u2, e, v ed448.Point
 }
 
+//XXX: make random part of something else
 func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
 	priv := &cramerShoupPrivateKey{}
 	var err error
@@ -45,6 +46,7 @@ func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
 	return priv, nil
 }
 
+//XXX: make this return a keyPair
 func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoupPublicKey, error) {
 	priv, err := deriveCramerShoupPrivKey(rand)
 	if err != nil {
