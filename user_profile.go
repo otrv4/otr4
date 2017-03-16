@@ -8,7 +8,7 @@ import (
 type signature [112]byte
 
 type userProfile struct {
-	versions        string // XXX: for the moment
+	versions        string
 	pubKey          *cramerShoupPublicKey
 	expiration      uint64
 	sig             signature
