@@ -1,28 +1,27 @@
 package otr4
 
 import (
-	"bytes"
 	"math/big"
+	"strings"
 )
 
 type signature [112]byte
 
 type userProfile struct {
-	versions        []byte // XXX: for the moment, use string?
+	versions        string // XXX: for the moment
 	pubKey          *cramerShoupPublicKey
 	expiration      uint64
 	sig             signature
 	transitionalSig *big.Int // XXX: for the moment, use MPI?
 }
 
-func newProfile(v []byte) (*userProfile, error) {
+func newProfile(v string) (*userProfile, error) {
 	if len(v) == 0 {
 		return nil, errInvalidVersion
 	}
 
-	// XXX: should the error be 'not supported'?
-	v1, v2 := []byte{0x01}, []byte{0x02}
-	if bytes.Contains(v, v1) || bytes.Contains(v, v2) {
+	v1, v2 := "1", "2"
+	if strings.Contains(v, v1) || strings.Contains(v, v2) {
 		return nil, errInvalidVersion
 	}
 	profile := &userProfile{versions: v}
