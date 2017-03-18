@@ -11,7 +11,7 @@ type drCipher struct {
 }
 
 type nIZKProof struct {
-	l, n1, n2 ed448.Scalar // XXX: this should be big.Int or MPI or byte[]?
+	l, n1, n2 ed448.Scalar // XXX: serialize as MPI
 }
 
 type drMessage struct {
@@ -20,7 +20,7 @@ type drMessage struct {
 }
 
 type authMessage struct {
-	c1, r1, c2, r2, c3, r3 ed448.Scalar // XXX: this should be big.Int or MPI or byte[]?
+	c1, r1, c2, r2, c3, r3 ed448.Scalar // XXX: serialize as MPI
 }
 
 func (gamma *drMessage) drEnc(message []byte, rand io.Reader, pub1, pub2 *cramerShoupPublicKey) (err error) {
@@ -280,27 +280,12 @@ func verifyDRMessage(u1, u2, v ed448.Point, alpha ed448.Scalar, priv *cramerShou
 }
 
 func (sigma *authMessage) generateAuthParams(rand io.Reader) error {
-	var err error
+	var err1, err2, err3, err4 error
 
-	sigma.c2, err = randScalar(rand)
-	if err != nil {
-		return err
-	}
+	sigma.c2, err1 = randScalar(rand)
+	sigma.c3, err2 = randScalar(rand)
+	sigma.r2, err3 = randScalar(rand)
+	sigma.r3, err4 = randScalar(rand)
 
-	sigma.c3, err = randScalar(rand)
-	if err != nil {
-		return err
-	}
-
-	sigma.r2, err = randScalar(rand)
-	if err != nil {
-		return err
-	}
-
-	sigma.r3, err = randScalar(rand)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return firstError(err1, err2, err3, err4)
 }
