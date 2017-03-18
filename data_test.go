@@ -99,17 +99,26 @@ func (s *OTR4Suite) Test_AppendPoint(c *C) {
 		},
 	)
 
-	b, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad8405db1d268")
-	bb, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad8405db1d268e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad8405db1d268")
+	bytes := []byte{}
+	exp, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a" +
+		"94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e0" +
+		"93aad8405db1d268")
+	exp2, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a" +
+		"94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e0" +
+		"93aad8405db1d268e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc" +
+		"1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad" +
+		"8405db1d268")
 
-	var l []byte
-
-	c.Assert(appendPoint(l, p), DeepEquals, b)
-	c.Assert(appendPoint(b, p), DeepEquals, bb)
+	c.Assert(appendPoint(bytes, p), DeepEquals, exp)
+	c.Assert(appendPoint(exp, p), DeepEquals, exp2)
 }
 
 func (s *OTR4Suite) Test_ExtractPoint(c *C) {
-	bytes, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad8405db1d268e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad8405db1d268")
+	bytes, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a" +
+		"94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e0" +
+		"93aad8405db1d268e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc" +
+		"1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad" +
+		"8405db1d268")
 	cursor := 0
 
 	exp := ed448.NewPoint(
