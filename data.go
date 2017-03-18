@@ -35,6 +35,23 @@ func appendAndHash(bytes ...interface{}) ed448.Scalar {
 	return hashToScalar(appendBytes(bytes...))
 }
 
-func appendPoint(l []byte, r ed448.Point) []byte {
-	return append(l, r.Encode()...)
+func appendPoint(bytes []byte, p ed448.Point) []byte {
+	return append(bytes, p.Encode()...)
+}
+
+func extractPoint(bytes []byte, cursor int) (ed448.Point, int, error) {
+	if len(bytes) < 56 {
+		return nil, 0, errInvalidLength
+	}
+
+	p := ed448.NewPointFromBytes()
+
+	valid, err := p.Decode(bytes[cursor:cursor+56], false)
+	if !valid {
+		return nil, 0, err
+	}
+
+	cursor += 56
+
+	return p, cursor, err
 }
