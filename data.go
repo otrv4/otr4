@@ -16,6 +16,7 @@ func appendBytes(bytes ...interface{}) (b []byte) {
 	if len(bytes) < 2 {
 		panic("programmer error: missing append arguments")
 	}
+
 	for _, e := range bytes {
 		switch i := e.(type) {
 		case ed448.Point:
@@ -45,13 +46,12 @@ func extractPoint(bytes []byte, cursor int) (ed448.Point, int, error) {
 	}
 
 	p := ed448.NewPointFromBytes()
-
-	valid, err := p.Decode(bytes[cursor:cursor+56], false)
+	valid, err := p.Decode(bytes[cursor:cursor+fieldBytes], false)
 	if !valid {
 		return nil, 0, err
 	}
 
-	cursor += 56
+	cursor += fieldBytes
 
 	return p, cursor, err
 }

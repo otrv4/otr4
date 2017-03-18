@@ -29,7 +29,6 @@ func (s *OTR4Suite) Test_BigIntLessOrEqualThan(c *C) {
 
 	result = lessOrEqual(big.NewInt(7), big.NewInt(3))
 	c.Assert(result, Equals, false)
-
 }
 
 func (s *OTR4Suite) Test_BigIntGreatOrEqualThan(c *C) {
