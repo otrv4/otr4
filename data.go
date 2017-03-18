@@ -36,6 +36,19 @@ func appendAndHash(bytes ...interface{}) ed448.Scalar {
 	return hashToScalar(appendBytes(bytes...))
 }
 
+func appendWord32(bytes []byte, data uint32) []byte {
+	return append(bytes, byte(data>>24), byte(data>>16), byte(data>>8), byte(data))
+}
+
+// XXX: refactor
+func appendWord64(bytes []byte, data uint64) []byte {
+	return append(bytes, byte(data>>56), byte(data>>48), byte(data>>40), byte(data>>32), byte(data>>24), byte(data>>16), byte(data>>8), byte(data))
+}
+
+func appendData(bytes, data []byte) []byte {
+	return append(appendWord32(bytes, uint32(len(data))), data...)
+}
+
 func appendPoint(bytes []byte, p ed448.Point) []byte {
 	return append(bytes, p.Encode()...)
 }

@@ -1,6 +1,7 @@
 package otr4
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 
 	"github.com/twstrike/ed448"
@@ -110,6 +111,44 @@ func (s *OTR4Suite) Test_AppendPoint(c *C) {
 
 	c.Assert(appendPoint(bytes, p), DeepEquals, exp)
 	c.Assert(appendPoint(exp, p), DeepEquals, exp2)
+}
+
+func (s *OTR4Suite) Test_AppendWord32(c *C) {
+	bytes := []byte{0xcc, 0x12}
+	rslt := appendWord32(bytes, 0xFF3824F7)
+
+	c.Assert(rslt, DeepEquals, []byte{0xcc, 0x12, 0xFF, 0x38, 0x24, 0xF7})
+
+	bytes = []byte{}
+	rslt = appendWord32(bytes, uint32(256))
+
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(256))
+
+	c.Assert(rslt, DeepEquals, b)
+}
+
+func (s *OTR4Suite) Test_AppendWord64(c *C) {
+	bytes := []byte{0xcc, 0x12}
+	rslt := appendWord64(bytes, 0x01FE48A2FF3824F7)
+
+	c.Assert(rslt, DeepEquals, []byte{0xcc, 0x12, 0x01, 0xFE, 0x48, 0xA2, 0xFF, 0x38, 0x24, 0xF7})
+
+	bytes = []byte{}
+	rslt = appendWord64(bytes, uint64(9007199254740993))
+
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(9007199254740993))
+
+	c.Assert(rslt, DeepEquals, b)
+}
+
+func (s *OTR4Suite) Test_AppendData(c *C) {
+	bytes := []byte{0x01, 0xAC}
+	b := []byte{0x57, 0xFF, 0x21, 0xE4, 0x67}
+	rslt := appendData(bytes, b)
+
+	c.Assert(rslt, DeepEquals, []byte{0x01, 0xAC, 0x00, 0x00, 0x00, 0x05, 0x57, 0xFF, 0x21, 0xE4, 0x67})
 }
 
 func (s *OTR4Suite) Test_ExtractPoint(c *C) {
