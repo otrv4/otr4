@@ -6,7 +6,7 @@ import (
 	"github.com/twstrike/ed448"
 )
 
-// XXX: use bytes?
+// XXX: serialize as MPI
 type cramerShoupPrivateKey struct {
 	x1, x2, y1, y2, z ed448.Scalar
 }
@@ -19,31 +19,18 @@ type cramerShoupMessage struct {
 	u1, u2, e, v ed448.Point
 }
 
-//XXX: make random part of something else
+//XXX: make random part of something else: conversation?
 func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
 	priv := &cramerShoupPrivateKey{}
-	var err error
-	priv.x1, err = randLongTermScalar(rand)
-	if err != nil {
-		return priv, err
-	}
-	priv.x2, err = randLongTermScalar(rand)
-	if err != nil {
-		return priv, err
-	}
-	priv.y1, err = randLongTermScalar(rand)
-	if err != nil {
-		return priv, err
-	}
-	priv.y2, err = randLongTermScalar(rand)
-	if err != nil {
-		return priv, err
-	}
-	priv.z, err = randLongTermScalar(rand)
-	if err != nil {
-		return priv, err
-	}
-	return priv, nil
+	var err1, err2, err3, err4, err5 error
+
+	priv.x1, err1 = randLongTermScalar(rand)
+	priv.x2, err2 = randLongTermScalar(rand)
+	priv.y1, err3 = randLongTermScalar(rand)
+	priv.y2, err4 = randLongTermScalar(rand)
+	priv.z, err5 = randLongTermScalar(rand)
+
+	return priv, firstError(err1, err2, err3, err4, err5)
 }
 
 //XXX: make this return a keyPair
