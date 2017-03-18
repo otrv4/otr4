@@ -99,3 +99,36 @@ func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (mess
 	message = m.Encode()
 	return
 }
+
+var csPubKeyType = []byte{0x00, 0x10}
+var csPubKeyTypeValue = uint16(0x0010)
+
+func (pub *cramerShoupPublicKey) serialize() []byte {
+	if pub.c == nil || pub.d == nil || pub.h == nil {
+		return nil
+	}
+
+	// XXX: do a serialize int instead?
+	rslt := csPubKeyType
+	rslt = appendPoint(rslt, pub.c)
+	rslt = appendPoint(rslt, pub.d)
+	rslt = appendPoint(rslt, pub.h)
+	return rslt
+}
+
+func deserialize(ser []byte) (*cramerShoupPublicKey, error) {
+	if len(ser) < 58 {
+		return nil, errInvalidLength
+	}
+
+	var err1, err2, err3 error
+	cursor := 2
+
+	c, cursor, err1 := extractPoint(ser, cursor)
+	d, cursor, err2 := extractPoint(ser, cursor)
+	h, cursor, err3 := extractPoint(ser, cursor)
+
+	pub := &cramerShoupPublicKey{c, d, h}
+
+	return pub, firstError(err1, err2, err3)
+}
