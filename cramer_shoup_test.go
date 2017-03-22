@@ -207,23 +207,23 @@ func (s *OTR4Suite) Test_CramerShoupKeyDerivation(c *C) {
 			0x6f, 0xe8, 0x4e, 0x81, 0x49, 0x31, 0xfe, 0x3b,
 		}),
 	}
-	priv, pub, err := deriveCramerShoupKeys(fixedRand(csRandData))
-	c.Assert(expPub.c, DeepEquals, pub.c)
-	c.Assert(expPub.d, DeepEquals, pub.d)
-	c.Assert(expPub.h, DeepEquals, pub.h)
+
+	keyPair, err := deriveCramerShoupKeys(fixedRand(csRandData))
+	c.Assert(expPub.c, DeepEquals, keyPair.pub.c)
+	c.Assert(expPub.d, DeepEquals, keyPair.pub.d)
+	c.Assert(expPub.h, DeepEquals, keyPair.pub.h)
 	c.Assert(err, IsNil)
 
-	c.Assert(expPriv.x1, DeepEquals, priv.x1)
-	c.Assert(expPriv.x2, DeepEquals, priv.x2)
-	c.Assert(expPriv.y1, DeepEquals, priv.y1)
-	c.Assert(expPriv.y2, DeepEquals, priv.y2)
-	c.Assert(expPriv.z, DeepEquals, priv.z)
+	c.Assert(expPriv.x1, DeepEquals, keyPair.priv.x1)
+	c.Assert(expPriv.x2, DeepEquals, keyPair.priv.x2)
+	c.Assert(expPriv.y1, DeepEquals, keyPair.priv.y1)
+	c.Assert(expPriv.y2, DeepEquals, keyPair.priv.y2)
+	c.Assert(expPriv.z, DeepEquals, keyPair.priv.z)
 
-	priv, pub, err = deriveCramerShoupKeys(fixedRand([]byte{0x00}))
+	keyPair, err = deriveCramerShoupKeys(fixedRand([]byte{0x00}))
 
 	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
-	c.Assert(priv, IsNil)
-	c.Assert(pub, IsNil)
+	c.Assert(keyPair, IsNil)
 }
 
 func (s *OTR4Suite) Test_CramerShoupEncryption(c *C) {
@@ -631,12 +631,12 @@ func (s *OTR4Suite) Test_CramerShoupEncryptAndDecrypt(c *C) {
 		0x63, 0x8c, 0x62, 0x26, 0x9e, 0x17, 0x5d, 0x22,
 	}
 
-	priv, pub, err := deriveCramerShoupKeys(rand.Reader)
+	keyPair, err := deriveCramerShoupKeys(rand.Reader)
 
 	csm := &cramerShoupMessage{}
-	err = csm.cramerShoupEnc(message, rand.Reader, pub)
+	err = csm.cramerShoupEnc(message, rand.Reader, keyPair.pub)
 
-	expMessage, err := csm.cramerShoupDec(priv)
+	expMessage, err := csm.cramerShoupDec(keyPair.priv)
 
 	c.Assert(expMessage, DeepEquals, message)
 	c.Assert(err, IsNil)

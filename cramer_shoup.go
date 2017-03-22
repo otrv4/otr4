@@ -15,6 +15,11 @@ type cramerShoupPublicKey struct {
 	c, d, h ed448.Point
 }
 
+type cramerShoupKeyPair struct {
+	pub  *cramerShoupPublicKey
+	priv *cramerShoupPrivateKey
+}
+
 type cramerShoupMessage struct {
 	u1, u2, e, v ed448.Point
 }
@@ -33,17 +38,21 @@ func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
 	return priv, firstError(err1, err2, err3, err4, err5)
 }
 
-//XXX: make this return a keyPair
-func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupPrivateKey, *cramerShoupPublicKey, error) {
-	priv, err := deriveCramerShoupPrivKey(rand)
+func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupKeyPair, error) {
+	var err error
+	keyPair := &cramerShoupKeyPair{}
+
+	keyPair.priv, err = deriveCramerShoupPrivKey(rand)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	pub := &cramerShoupPublicKey{}
-	pub.c = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, priv.x1, priv.x2)
-	pub.d = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, priv.y1, priv.y2)
-	pub.h = ed448.PointScalarMul(ed448.BasePoint, priv.z)
-	return priv, pub, nil
+
+	keyPair.pub = &cramerShoupPublicKey{}
+	keyPair.pub.c = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, keyPair.priv.x1, keyPair.priv.x2)
+	keyPair.pub.d = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, keyPair.priv.y1, keyPair.priv.y2)
+	keyPair.pub.h = ed448.PointScalarMul(ed448.BasePoint, keyPair.priv.z)
+
+	return keyPair, nil
 }
 
 func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) error {

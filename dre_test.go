@@ -56,16 +56,16 @@ func (s *OTR4Suite) Test_DREncryptAndDecrypt(c *C) {
 		0x63, 0x8c, 0x62, 0x26, 0x9e, 0x17, 0x5d, 0x22,
 	}
 
-	priv1, pub1, err := deriveCramerShoupKeys(rand.Reader)
-	priv2, pub2, err := deriveCramerShoupKeys(rand.Reader)
+	keyPairA, err := deriveCramerShoupKeys(rand.Reader)
+	keyPairB, err := deriveCramerShoupKeys(rand.Reader)
 
 	drMessage := &drMessage{}
-	err = drMessage.drEnc(message, rand.Reader, pub1, pub2)
+	err = drMessage.drEnc(message, rand.Reader, keyPairA.pub, keyPairB.pub)
 
-	expMessage1, err := drMessage.drDec(pub1, pub2, priv1, 1)
+	expMessage1, err := drMessage.drDec(keyPairA.pub, keyPairB.pub, keyPairA.priv, 1)
 	c.Assert(err, IsNil)
 	c.Assert(expMessage1, DeepEquals, message)
-	expMessage2, err := drMessage.drDec(pub1, pub2, priv2, 2)
+	expMessage2, err := drMessage.drDec(keyPairA.pub, keyPairB.pub, keyPairB.priv, 2)
 	c.Assert(err, IsNil)
 	c.Assert(expMessage2, DeepEquals, message)
 }
