@@ -51,7 +51,9 @@ func (s *OTR4Suite) Test_SerializeSignature(c *C) {
 		0x93, 0x25, 0xfe, 0x78, 0x0f, 0xdd, 0xa1, 0x3a,
 	}
 
-	ser := serializeSig(signature)
+	var bytes []byte
+
+	ser := appendSig(bytes, signature)
 
 	exp := []byte{
 		0xee, 0xec, 0x0c, 0xa7, 0x39, 0x65, 0x3c, 0x35,
@@ -82,7 +84,9 @@ func (s *OTR4Suite) Test_SerializeTransitionalSignature(c *C) {
 		0xbf, 0xe7, 0xb7, 0xec, 0x8b, 0x52, 0x43, 0x46,
 	}
 
-	ser := serializeTransitionalSig(signature)
+	var bytes []byte
+
+	ser := appendTransitionalSig(bytes, signature)
 
 	exp := []byte{
 		0xee, 0xec, 0x0c, 0xa7, 0x39, 0x65, 0x3c, 0x35,
@@ -101,7 +105,7 @@ func (s *OTR4Suite) Test_SerializeUserProfileBody(c *C) {
 	expiration := uint64(12)
 	profile.expiration = expiration
 
-	profile.pubKey = testPubA
+	profile.pub = testPubA
 
 	ser := serializeBody(profile)
 
@@ -145,7 +149,7 @@ func (s *OTR4Suite) Test_SerializeUserProfile(c *C) {
 	expiration := uint64(12)
 	profile.expiration = expiration
 
-	profile.pubKey = testPubA
+	profile.pub = testPubA
 
 	signature := &signature{
 		0xee, 0xec, 0x0c, 0xa7, 0x39, 0x65, 0x3c, 0x35,

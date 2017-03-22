@@ -3,16 +3,19 @@ package otr4
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 	"strings"
+
+	"github.com/twstrike/ed448"
 )
 
-type signature [112]byte
+type signature [sigBytes]byte
 
-type dsaSignature [40]byte
+type dsaSignature [dsaSigBytes]byte
 
 type userProfile struct {
 	versions        string
-	pubKey          *cramerShoupPublicKey
+	pub             *cramerShoupPublicKey
 	expiration      uint64
 	sig             *signature
 	transitionalSig *dsaSignature
@@ -33,28 +36,26 @@ func newProfile(v string) (*userProfile, error) {
 	return profile, nil
 }
 
-// XXX: make this append?
-func serializeSig(sig *signature) []byte {
+func appendSig(b []byte, sig *signature) []byte {
 	var binBuf bytes.Buffer
 
 	binary.Write(&binBuf, binary.BigEndian, sig)
-
-	return binBuf.Bytes()
+	return append(b, binBuf.Bytes()...)
 }
 
-func serializeTransitionalSig(sig *dsaSignature) []byte {
+func appendTransitionalSig(b []byte, sig *dsaSignature) []byte {
 	var binBuf bytes.Buffer
 
 	binary.Write(&binBuf, binary.BigEndian, sig)
 
-	return binBuf.Bytes()
+	return append(b, binBuf.Bytes()...)
 }
 
 func serializeBody(profile *userProfile) []byte {
 	var out []byte
 
 	out = appendData(out, parseToByte(profile.versions))
-	out = append(out, profile.pubKey.serialize()...)
+	out = append(out, profile.pub.serialize()...)
 	out = appendWord64(out, profile.expiration)
 
 	return out
@@ -65,10 +66,10 @@ func (profile *userProfile) serialize() []byte {
 	var out []byte
 
 	out = appendData(out, parseToByte(profile.versions))
-	out = append(out, profile.pubKey.serialize()...)
+	out = append(out, profile.pub.serialize()...)
 	out = appendWord64(out, profile.expiration)
-	out = append(out, serializeSig(profile.sig)...)
-	out = append(out, serializeTransitionalSig(profile.transitionalSig)...)
+	out = appendSig(out, profile.sig)
+	out = appendTransitionalSig(out, profile.transitionalSig)
 
 	return out
 }
