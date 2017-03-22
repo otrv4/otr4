@@ -74,3 +74,29 @@ func extractPoint(bytes []byte, cursor int) (ed448.Point, int, error) {
 
 	return p, cursor, err
 }
+
+func fromHexChar(c byte) (byte, bool) {
+	switch {
+	case '0' <= c && c <= '9':
+		return c - '0', true
+	case 'a' <= c && c <= 'f':
+		return c - 'a' + 10, true
+	case 'A' <= c && c <= 'F':
+		return c - 'A' + 10, true
+	}
+
+	return 0, false
+}
+
+func parseToByte(str string) []byte {
+	var out []byte
+	for _, s := range str {
+		l, valid := fromHexChar(byte(s))
+		if !valid {
+			return nil
+		}
+		out = append(out, l)
+	}
+
+	return out
+}

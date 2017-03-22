@@ -215,3 +215,41 @@ func (s *OTR4Suite) Test_ExtractPoint(c *C) {
 	c.Assert(cursor, Equals, 0)
 	c.Assert(err, ErrorMatches, "*. invalid length")
 }
+
+func (s *OTR4Suite) Test_FromHexChar(c *C) {
+	b, valid := fromHexChar(51)
+	exp := uint8(0x3)
+
+	c.Assert(b, DeepEquals, exp)
+	c.Assert(valid, Equals, true)
+
+	b, valid = fromHexChar('a')
+	exp = uint8(0xa)
+
+	c.Assert(b, DeepEquals, exp)
+	c.Assert(valid, Equals, true)
+
+	b, valid = fromHexChar('A')
+	exp = uint8(0xA)
+
+	c.Assert(b, DeepEquals, exp)
+	c.Assert(valid, Equals, true)
+
+	b, valid = fromHexChar('.')
+	exp = uint8(0x0)
+
+	c.Assert(b, DeepEquals, exp)
+	c.Assert(valid, Equals, false)
+}
+
+func (s *OTR4Suite) Test_ParseToByte(c *C) {
+	str := "34"
+
+	exp := []byte{0x03, 0x04}
+
+	c.Assert(parseToByte(str), DeepEquals, exp)
+
+	str = ""
+
+	c.Assert(parseToByte(str), IsNil)
+}
