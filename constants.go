@@ -3,7 +3,11 @@ package otr4
 import "github.com/twstrike/ed448"
 
 const (
-	fieldBytes = 56
+	fieldBytes  = 56
+	keySigBytes = 144
+	symKeyBytes = 32
+	sigBytes    = 112
+	dsaSigBytes = 40
 )
 
 var (
