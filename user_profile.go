@@ -61,7 +61,36 @@ func serializeBody(profile *userProfile) []byte {
 	return out
 }
 
-//XXX: this will be the signed verson.
+func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) (*signature, error) {
+	profile.pub = keyPair.pub
+
+	sym, err := randSymKey(rand)
+	if err != nil {
+		return nil, err
+	}
+
+	k := &signatureKey{}
+	copy(k.symKey(), sym)
+	copy(k.publicKey(), keyPair.pub.h.Encode())
+	copy(k.secretKey(), keyPair.priv.z.Encode())
+
+	c := ed448.NewDecafCurve()
+	body := serializeBody(profile)
+
+	sig, valid := c.Sign(k.bytes(), body)
+	if !valid {
+		return nil, err
+	}
+
+	signature := &signature{}
+	for i, b := range sig {
+		signature[i] = b
+	}
+
+	return signature, nil
+}
+
+//XXX: this will be the signed version.
 func (profile *userProfile) serialize() []byte {
 	var out []byte
 
