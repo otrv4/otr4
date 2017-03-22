@@ -1,6 +1,8 @@
 package otr4
 
 import (
+	"math/big"
+
 	"github.com/twstrike/ed448"
 	"golang.org/x/crypto/sha3"
 )
@@ -47,6 +49,10 @@ func appendWord64(bytes []byte, data uint64) []byte {
 
 func appendData(bytes, data []byte) []byte {
 	return append(appendWord32(bytes, uint32(len(data))), data...)
+}
+
+func appendMPI(bytes []byte, data *big.Int) []byte {
+	return appendData(bytes, data.Bytes())
 }
 
 func appendPoint(bytes []byte, p ed448.Point) []byte {
