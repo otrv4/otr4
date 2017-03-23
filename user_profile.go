@@ -1,8 +1,6 @@
 package otr4
 
 import (
-	"bytes"
-	"encoding/binary"
 	"io"
 	"strings"
 
@@ -16,7 +14,7 @@ type dsaSignature [dsaSigBytes]byte
 type userProfile struct {
 	versions        string
 	pub             *cramerShoupPublicKey
-	expiration      uint64
+	expiration      int64
 	sig             *signature
 	transitionalSig *dsaSignature
 }
@@ -36,27 +34,16 @@ func newProfile(v string) (*userProfile, error) {
 	return profile, nil
 }
 
-func appendSig(b []byte, sig *signature) []byte {
-	var binBuf bytes.Buffer
-
-	binary.Write(&binBuf, binary.BigEndian, sig)
-	return append(b, binBuf.Bytes()...)
-}
-
-func appendTransitionalSig(b []byte, sig *dsaSignature) []byte {
-	var binBuf bytes.Buffer
-
-	binary.Write(&binBuf, binary.BigEndian, sig)
-
-	return append(b, binBuf.Bytes()...)
-}
-
 func serializeBody(profile *userProfile) []byte {
 	var out []byte
 
 	out = appendData(out, parseToByte(profile.versions))
-	out = append(out, profile.pub.serialize()...)
+	out = appendBytes(out, profile.pub.serialize())
 	out = appendWord64(out, profile.expiration)
+
+	if profile.transitionalSig != nil {
+		out = appendSignature(out, profile.transitionalSig)
+	}
 
 	return out
 }
@@ -69,6 +56,7 @@ func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) (*
 		return nil, err
 	}
 
+	// XXX: will it be better to just append bytes?
 	k := &signatureKey{}
 	copy(k.symKey(), sym)
 	copy(k.publicKey(), keyPair.pub.h.Encode())
@@ -95,10 +83,10 @@ func (profile *userProfile) serialize() []byte {
 	var out []byte
 
 	out = appendData(out, parseToByte(profile.versions))
-	out = append(out, profile.pub.serialize()...)
+	out = appendBytes(out, profile.pub.serialize())
 	out = appendWord64(out, profile.expiration)
-	out = appendSig(out, profile.sig)
-	out = appendTransitionalSig(out, profile.transitionalSig)
+	out = appendSignature(out, profile.sig)
+	out = appendSignature(out, profile.transitionalSig)
 
 	return out
 }

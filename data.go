@@ -1,6 +1,8 @@
 package otr4
 
 import (
+	"bytes"
+	"encoding/binary"
 	"math/big"
 
 	"github.com/twstrike/ed448"
@@ -14,12 +16,14 @@ func hashToScalar(in []byte) ed448.Scalar {
 	return s
 }
 
-func appendBytes(bytes ...interface{}) (b []byte) {
-	if len(bytes) < 2 {
+func appendBytes(bs ...interface{}) []byte {
+	var b []byte
+
+	if len(bs) < 2 {
 		panic("programmer error: missing append arguments")
 	}
 
-	for _, e := range bytes {
+	for _, e := range bs {
 		switch i := e.(type) {
 		case ed448.Point:
 			b = append(b, i.Encode()...)
@@ -34,38 +38,51 @@ func appendBytes(bytes ...interface{}) (b []byte) {
 	return b
 }
 
-func appendAndHash(bytes ...interface{}) ed448.Scalar {
-	return hashToScalar(appendBytes(bytes...))
+func appendAndHash(bs ...interface{}) ed448.Scalar {
+	return hashToScalar(appendBytes(bs...))
 }
 
-func appendWord32(bytes []byte, data uint32) []byte {
-	return append(bytes, byte(data>>24), byte(data>>16), byte(data>>8), byte(data))
+func appendWord32(b []byte, data uint32) []byte {
+	return append(b, byte(data>>24), byte(data>>16), byte(data>>8), byte(data))
 }
 
-// XXX: refactor
-func appendWord64(bytes []byte, data uint64) []byte {
-	return append(bytes, byte(data>>56), byte(data>>48), byte(data>>40), byte(data>>32), byte(data>>24), byte(data>>16), byte(data>>8), byte(data))
+func appendWord64(b []byte, data int64) []byte {
+	return append(b, byte(data>>56), byte(data>>48), byte(data>>40), byte(data>>32), byte(data>>24), byte(data>>16), byte(data>>8), byte(data))
 }
 
-func appendData(bytes, data []byte) []byte {
-	return append(appendWord32(bytes, uint32(len(data))), data...)
+func appendData(b, data []byte) []byte {
+	return append(appendWord32(b, uint32(len(data))), data...)
 }
 
-func appendMPI(bytes []byte, data *big.Int) []byte {
-	return appendData(bytes, data.Bytes())
+func appendMPI(b []byte, data *big.Int) []byte {
+	return appendData(b, data.Bytes())
 }
 
-func appendPoint(bytes []byte, p ed448.Point) []byte {
-	return append(bytes, p.Encode()...)
+func appendPoint(b []byte, p ed448.Point) []byte {
+	return append(b, p.Encode()...)
 }
 
-func extractPoint(bytes []byte, cursor int) (ed448.Point, int, error) {
-	if len(bytes) < 56 {
+func appendSignature(b []byte, data interface{}) []byte {
+	var binBuf bytes.Buffer
+
+	switch d := data.(type) {
+	case *signature:
+		binary.Write(&binBuf, binary.BigEndian, d)
+		return append(b, binBuf.Bytes()...)
+	case *dsaSignature:
+		binary.Write(&binBuf, binary.BigEndian, d)
+		return append(b, binBuf.Bytes()...)
+	}
+	return nil
+}
+
+func extractPoint(b []byte, cursor int) (ed448.Point, int, error) {
+	if len(b) < 56 {
 		return nil, 0, errInvalidLength
 	}
 
 	p := ed448.NewPointFromBytes()
-	valid, err := p.Decode(bytes[cursor:cursor+fieldBytes], false)
+	valid, err := p.Decode(b[cursor:cursor+fieldBytes], false)
 	if !valid {
 		return nil, 0, err
 	}
@@ -89,14 +106,15 @@ func fromHexChar(c byte) (byte, bool) {
 }
 
 func parseToByte(str string) []byte {
-	var out []byte
+	var bs []byte
+
 	for _, s := range str {
 		l, valid := fromHexChar(byte(s))
 		if !valid {
 			return nil
 		}
-		out = append(out, l)
+		bs = append(bs, l)
 	}
 
-	return out
+	return bs
 }
