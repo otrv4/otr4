@@ -1,8 +1,6 @@
 package otr4
 
 import (
-	"bytes"
-	"encoding/binary"
 	"math/big"
 
 	"github.com/twstrike/ed448"
@@ -62,16 +60,15 @@ func appendPoint(b []byte, p ed448.Point) []byte {
 	return append(b, p.Encode()...)
 }
 
-func appendSignature(b []byte, data interface{}) []byte {
-	var binBuf bytes.Buffer
-
+func appendSignature(bs []byte, data interface{}) []byte {
 	switch d := data.(type) {
 	case *signature:
-		binary.Write(&binBuf, binary.BigEndian, d)
-		return append(b, binBuf.Bytes()...)
+		b := serializeSignature(d)
+		return append(bs, b[:]...)
 	case *dsaSignature:
-		binary.Write(&binBuf, binary.BigEndian, d)
-		return append(b, binBuf.Bytes()...)
+		var b [dsaSigBytes]byte
+		copy(b[:], d[:])
+		return append(bs, b[:]...)
 	}
 	return nil
 }

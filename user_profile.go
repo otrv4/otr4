@@ -29,9 +29,19 @@ func newProfile(v string) (*userProfile, error) {
 	if strings.Contains(v, v1) || strings.Contains(v, v2) {
 		return nil, errInvalidVersion
 	}
-	profile := &userProfile{versions: v}
+	profile := &userProfile{
+		versions: v,
+		sig:      &signature{},
+	}
 
 	return profile, nil
+}
+
+func serializeSignature(data *signature) [112]byte {
+	var b [112]byte
+	copy(b[:], data[:])
+
+	return b
 }
 
 func serializeBody(profile *userProfile) []byte {
@@ -48,29 +58,31 @@ func serializeBody(profile *userProfile) []byte {
 	return out
 }
 
-func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) (*signature, error) {
+func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) error {
 	profile.pub = keyPair.pub
 
 	sym, err := randSymKey(rand)
 	if err != nil {
-		return nil, err
+		// XXX: set profile to nil?
+		return err
 	}
 
-	// XXX: will it be better to just append bytes?
-	k := &signatureKey{}
-	copy(k.symKey(), sym)
-	copy(k.publicKey(), keyPair.pub.h.Encode())
-	copy(k.secretKey(), keyPair.priv.z.Encode())
+	var k []byte
+	k = appendBytes(k, keyPair.priv.z.Encode())
+	k = appendBytes(k, keyPair.pub.h.Encode())
+	k = appendBytes(k, sym)
+
+	var key [144]byte
+	copy(key[:], k)
 
 	c := ed448.NewDecafCurve()
 	body := serializeBody(profile)
 
-	sig, valid := c.Sign(k.bytes(), body)
+	sig, valid := c.Sign(key, body)
 	if !valid {
-		return nil, err
+		return errCorruptEncryptedSignature
 	}
 
-	signature := &signature{}
 	for i, b := range sig {
 		signature[i] = b
 	}

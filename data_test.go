@@ -227,11 +227,11 @@ func (s *OTR4Suite) Test_SerializeSignature(c *C) {
 }
 
 func (s *OTR4Suite) Test_ExtractPoint(c *C) {
-	bs, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a" +
-		"94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e0" +
-		"93aad8405db1d268e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc" +
-		"1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad" +
-		"8405db1d268")
+	bs, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94c" +
+		"c1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aa" +
+		"d8405db1d268e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc1d46f" +
+		"ff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad8405d" +
+		"b1d268")
 	cursor := 0
 
 	exp := ed448.NewPoint(

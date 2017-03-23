@@ -5,6 +5,7 @@ var notEnoughEntropy = newOtrError("cannot source enough entropy")
 var errImpossibleToDecrypt = newOtrError("cannot decrypt the message")
 var errInvalidVersion = newOtrError("no valid version agreement could be found")
 var errInvalidLength = newOtrError("invalid length")
+var errCorruptEncryptedSignature = newOtrError("corrupted signature")
 
 type otrError struct {
 	msg string
