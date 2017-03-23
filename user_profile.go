@@ -84,13 +84,29 @@ func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) er
 	}
 
 	for i, b := range sig {
-		signature[i] = b
+		profile.sig[i] = b
 	}
 
-	return signature, nil
+	return nil
+}
+
+func (profile *userProfile) verify(pub *cramerShoupPublicKey) (bool, error) {
+	c := ed448.NewDecafCurve()
+	body := serializeBody(profile)
+
+	var pubKey [fieldBytes]byte
+	copy(pubKey[:], pub.h.Encode())
+
+	valid, err := c.Verify(serializeSignature(profile.sig), body, pubKey)
+	if err != nil {
+		return valid, err
+	}
+
+	return valid, nil
 }
 
 //XXX: this will be the signed version.
+// just call ser body?
 func (profile *userProfile) serialize() []byte {
 	var out []byte
 
