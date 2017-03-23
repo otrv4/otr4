@@ -1,18 +1,16 @@
 package otr4
 
 import (
+	"crypto/rand"
+
 	. "gopkg.in/check.v1"
 )
 
 func (s *OTR4Suite) Test_NewUserProfile(c *C) {
-	exp := &userProfile{
-		versions: "4",
-		sig:      &signature{},
-	}
-
+	exp := "4"
 	profile, err := newProfile("4")
 
-	c.Assert(profile, DeepEquals, exp)
+	c.Assert(profile.versions, DeepEquals, exp)
 	c.Assert(err, IsNil)
 
 	profile, err = newProfile("")
@@ -210,6 +208,24 @@ func (s *OTR4Suite) Test_VerifyUserProfile(c *C) {
 	keyPair, err := deriveCramerShoupKeys(fixedRand(csRandData))
 
 	err = profile.sign(fixedRand(csRandData), keyPair)
+
+	c.Assert(err, IsNil)
+
+	valid, err := profile.verify(keyPair.pub)
+
+	c.Assert(valid, Equals, true)
+	c.Assert(err, IsNil)
+}
+
+func (s *OTR4Suite) Test_SingAndVerifyUserProfile(c *C) {
+	profile, _ := newProfile("43")
+
+	expiration := int64(12)
+	profile.expiration = expiration
+
+	keyPair, err := deriveCramerShoupKeys(rand.Reader)
+
+	err = profile.sign(rand.Reader, keyPair)
 
 	c.Assert(err, IsNil)
 

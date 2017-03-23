@@ -3,6 +3,7 @@ package otr4
 import (
 	"io"
 	"strings"
+	"time"
 
 	"github.com/twstrike/ed448"
 )
@@ -29,9 +30,13 @@ func newProfile(v string) (*userProfile, error) {
 	if strings.Contains(v, v1) || strings.Contains(v, v2) {
 		return nil, errInvalidVersion
 	}
+
+	t := time.Now().Unix() + int64(1209600)
+
 	profile := &userProfile{
-		versions: v,
-		sig:      &signature{},
+		versions:   v,
+		expiration: t,
+		sig:        &signature{},
 	}
 
 	return profile, nil
