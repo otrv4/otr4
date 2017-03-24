@@ -7,28 +7,30 @@ import (
 )
 
 func (s *OTR4Suite) Test_NewUserProfile(c *C) {
+	keyPair, _ := deriveCramerShoupKeys(rand.Reader)
 	exp := "4"
-	profile, err := newProfile("4")
+	profile, err := createProfileBody("4", keyPair)
 
 	c.Assert(profile.versions, DeepEquals, exp)
+	c.Assert(profile.pub, Not(IsNil))
 	c.Assert(err, IsNil)
 
-	profile, err = newProfile("")
+	profile, err = createProfileBody("", keyPair)
 
 	c.Assert(profile, IsNil)
 	c.Assert(err, ErrorMatches, ".* no valid version agreement could be found")
 
-	profile, err = newProfile("1")
+	profile, err = createProfileBody("1", keyPair)
 
 	c.Assert(profile, IsNil)
 	c.Assert(err, ErrorMatches, ".* no valid version agreement could be found")
 
-	profile, err = newProfile("31")
+	profile, err = createProfileBody("31", keyPair)
 
 	c.Assert(profile, IsNil)
 	c.Assert(err, ErrorMatches, ".* no valid version agreement could be found")
 
-	profile, err = newProfile("24")
+	profile, err = createProfileBody("24", keyPair)
 
 	c.Assert(profile, IsNil)
 	c.Assert(err, ErrorMatches, ".* no valid version agreement could be found")
@@ -165,7 +167,8 @@ func (s *OTR4Suite) Test_SerializeUserProfileBody(c *C) {
 }
 
 func (s *OTR4Suite) Test_SignUserProfile(c *C) {
-	profile, _ := newProfile("43")
+	keyPair, _ := deriveCramerShoupKeys(fixedRand(csRandData))
+	profile, _ := createProfileBody("43", keyPair)
 
 	expiration := int64(12)
 	profile.expiration = expiration
@@ -200,7 +203,8 @@ func (s *OTR4Suite) Test_SignUserProfile(c *C) {
 }
 
 func (s *OTR4Suite) Test_VerifyUserProfile(c *C) {
-	profile, _ := newProfile("43")
+	keyPair, _ := deriveCramerShoupKeys(fixedRand(csRandData))
+	profile, _ := createProfileBody("43", keyPair)
 
 	expiration := int64(12)
 	profile.expiration = expiration
@@ -218,16 +222,11 @@ func (s *OTR4Suite) Test_VerifyUserProfile(c *C) {
 }
 
 func (s *OTR4Suite) Test_SingAndVerifyUserProfile(c *C) {
-	profile, _ := newProfile("43")
+	keyPair, _ := deriveCramerShoupKeys(rand.Reader)
 
-	expiration := int64(12)
-	profile.expiration = expiration
-
-	keyPair, err := deriveCramerShoupKeys(rand.Reader)
+	profile, err := createProfileBody("43", keyPair)
 
 	err = profile.sign(rand.Reader, keyPair)
-
-	c.Assert(err, IsNil)
 
 	valid, err := profile.verify(keyPair.pub)
 
@@ -236,30 +235,20 @@ func (s *OTR4Suite) Test_SingAndVerifyUserProfile(c *C) {
 }
 
 func (s *OTR4Suite) Test_SerializeUserProfile(c *C) {
-	profile, _ := newProfile("34")
+	r := fixedRand([]byte{
+		0x40, 0x80, 0x66, 0x2d, 0xd8, 0xe7, 0xf0, 0x9c,
+		0xdf, 0xb0, 0x4e, 0x1c, 0x6e, 0x12, 0x62, 0xa3,
+		0x7c, 0x31, 0x9a, 0xe1, 0xe7, 0x86, 0x87, 0xcc,
+		0x82, 0x05, 0x78, 0xe6, 0x44, 0x2f, 0x4f, 0x77,
+	},
+	)
 
-	expiration := int64(12)
-	profile.expiration = expiration
-
-	profile.pub = testPubA
-
-	signature := &signature{
-		0xee, 0xec, 0x0c, 0xa7, 0x39, 0x65, 0x3c, 0x35,
-		0xe2, 0x28, 0xd3, 0xc8, 0xc1, 0x07, 0x96, 0xeb,
-		0x06, 0xe8, 0x14, 0x05, 0x62, 0x52, 0xab, 0x6c,
-		0x63, 0xf1, 0x4f, 0x55, 0xb3, 0xea, 0x9b, 0x1d,
-		0xbf, 0xe7, 0xb7, 0xec, 0x8b, 0x52, 0x43, 0x46,
-		0x35, 0xd5, 0xd5, 0xbb, 0xbb, 0xea, 0xfe, 0x7e,
-		0xcd, 0xc8, 0xd6, 0xf2, 0x7c, 0x71, 0x87, 0x61,
-		0xfa, 0x77, 0xed, 0x08, 0x51, 0x91, 0xc4, 0x85,
-		0x74, 0x28, 0xdd, 0xa0, 0xed, 0xbc, 0x88, 0x71,
-		0xbd, 0xc3, 0x34, 0x9a, 0xce, 0xee, 0x1a, 0xab,
-		0x4c, 0xa2, 0x37, 0xea, 0xb4, 0xea, 0xd2, 0x8d,
-		0x25, 0xf1, 0x10, 0x86, 0xc0, 0x60, 0xeb, 0xb3,
-		0xb0, 0x9a, 0xaa, 0x8a, 0x4b, 0x00, 0x9e, 0xf1,
-		0x93, 0x25, 0xfe, 0x78, 0x0f, 0xdd, 0xa1, 0x3a,
+	con := &conversation{
+		random: r,
 	}
-	profile.sig = signature
+
+	keyPair, _ := deriveCramerShoupKeys(fixedRand(csRandData))
+	profile, _ := con.newProfile("34", keyPair)
 
 	transSig := &dsaSignature{
 		0xee, 0xec, 0x0c, 0xa7, 0x39, 0x65, 0x3c, 0x35,

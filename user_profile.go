@@ -16,12 +16,28 @@ type userProfile struct {
 	versions        string
 	pub             *cramerShoupPublicKey
 	expiration      int64
-	sig             *signature
 	transitionalSig *dsaSignature
+	sig             *signature
 }
 
-// XXX: include the other params
-func newProfile(v string) (*userProfile, error) {
+// XXX: make this not a method of conversation
+// XXX: add tranSignature
+func (c *conversation) newProfile(v string, keyPair *cramerShoupKeyPair) (*userProfile, error) {
+	profile, err := createProfileBody(v, keyPair)
+	if err != nil {
+		return nil, err
+	}
+
+	err = profile.sign(c.rand(), keyPair)
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
+// XXX: add tranSignature
+func createProfileBody(v string, keyPair *cramerShoupKeyPair) (*userProfile, error) {
 	if len(v) == 0 {
 		return nil, errInvalidVersion
 	}
@@ -35,6 +51,7 @@ func newProfile(v string) (*userProfile, error) {
 
 	profile := &userProfile{
 		versions:   v,
+		pub:        keyPair.pub,
 		expiration: t,
 		sig:        &signature{},
 	}
@@ -64,7 +81,6 @@ func serializeBody(profile *userProfile) []byte {
 }
 
 func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) error {
-	profile.pub = keyPair.pub
 
 	sym, err := randSymKey(rand)
 	if err != nil {
