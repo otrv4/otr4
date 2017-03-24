@@ -319,3 +319,15 @@ func (s *OTR4Suite) Test_ParseToByte(c *C) {
 
 	c.Assert(parseToByte(str), IsNil)
 }
+
+func (s *OTR4Suite) Test_BytesToString(c *C) {
+	bs := []byte{0x03, 0x04}
+	exp := "34"
+
+	c.Assert(bytesToString(bs), DeepEquals, exp)
+
+	bs = []byte{0xd3, 0xff}
+	exp = "211255"
+
+	c.Assert(bytesToString(bs), DeepEquals, exp)
+}

@@ -2,6 +2,7 @@ package otr4
 
 import (
 	"math/big"
+	"strconv"
 
 	"github.com/twstrike/ed448"
 	"golang.org/x/crypto/sha3"
@@ -114,4 +115,13 @@ func parseToByte(str string) []byte {
 	}
 
 	return bs
+}
+
+func bytesToString(bs []byte) string {
+	var str string
+	for _, i := range bs {
+		str += strconv.Itoa(int(i))
+	}
+
+	return str
 }
