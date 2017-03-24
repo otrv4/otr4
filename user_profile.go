@@ -59,27 +59,6 @@ func createProfileBody(v string, keyPair *cramerShoupKeyPair) (*userProfile, err
 	return profile, nil
 }
 
-func serializeSignature(data *signature) [112]byte {
-	var b [112]byte
-	copy(b[:], data[:])
-
-	return b
-}
-
-func serializeBody(profile *userProfile) []byte {
-	var out []byte
-
-	out = appendData(out, parseToByte(profile.versions))
-	out = appendBytes(out, profile.pub.serialize())
-	out = appendWord64(out, profile.expiration)
-
-	if profile.transitionalSig != nil {
-		out = appendSignature(out, profile.transitionalSig)
-	}
-
-	return out
-}
-
 func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) error {
 
 	sym, err := randSymKey(rand)

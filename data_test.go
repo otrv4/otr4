@@ -224,6 +224,11 @@ func (s *OTR4Suite) Test_SerializeSignature(c *C) {
 	}
 
 	c.Assert(ser, DeepEquals, exp)
+
+	cs := &cramerShoupPublicKey{}
+	ser = appendSignature(bytes, cs)
+
+	c.Assert(ser, IsNil)
 }
 
 func (s *OTR4Suite) Test_ExtractPoint(c *C) {
