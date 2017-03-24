@@ -231,6 +231,29 @@ func (s *OTR4Suite) Test_SerializeSignature(c *C) {
 	c.Assert(ser, IsNil)
 }
 
+func (s *OTR4Suite) Test_ExtractWord(c *C) {
+	bs := []byte{0x12, 0x14, 0x15}
+	_, rslt, ok := extractWord(bs)
+
+	c.Assert(rslt, DeepEquals, uint32(0x0))
+	c.Assert(ok, Equals, false)
+
+	bs = []byte{0x12, 0x14, 0x15, 0xff, 0x03}
+	_, rslt, ok = extractWord(bs)
+
+	c.Assert(rslt, DeepEquals, uint32(0x121415ff))
+	c.Assert(ok, Equals, true)
+}
+
+func (s *OTR4Suite) Test_ExtractData(c *C) {
+	bs := []byte{0x00, 0x00, 0x00, 0x05, 0x55, 0x12, 0x04, 0x8A, 0x00}
+	index, rslt, ok := extractData(bs)
+
+	c.Assert(rslt, DeepEquals, []byte{0x55, 0x12, 0x04, 0x8A, 0x00})
+	c.Assert(index, DeepEquals, []byte{})
+	c.Assert(ok, Equals, true)
+}
+
 func (s *OTR4Suite) Test_ExtractPoint(c *C) {
 	bs, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94c" +
 		"c1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aa" +

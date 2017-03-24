@@ -74,6 +74,28 @@ func appendSignature(bs []byte, data interface{}) []byte {
 	return nil
 }
 
+func extractWord(bs []byte) ([]byte, uint32, bool) {
+	if len(bs) < 4 {
+		return nil, 0, false
+	}
+
+	return bs[4:], uint32(bs[0])<<24 |
+		uint32(bs[1])<<16 |
+		uint32(bs[2])<<8 |
+		uint32(bs[3]), true
+}
+
+func extractData(bs []byte) ([]byte, []byte, bool) {
+	cursor, l, ok := extractWord(bs)
+	if !ok || len(cursor) < int(l) {
+		return bs, nil, false
+	}
+
+	data := cursor[:int(l)]
+	cursor = cursor[int(l):]
+	return cursor, data, ok
+}
+
 func extractPoint(b []byte, cursor int) (ed448.Point, int, error) {
 	if len(b) < 56 {
 		return nil, 0, errInvalidLength
