@@ -5,16 +5,8 @@ import (
 
 	"github.com/twstrike/ed448"
 
-	"testing"
-
 	. "gopkg.in/check.v1"
 )
-
-func Test(t *testing.T) { TestingT(t) }
-
-type OTR4Suite struct{}
-
-var _ = Suite(&OTR4Suite{})
 
 func (s *OTR4Suite) Test_DREnc(c *C) {
 	m := new(drMessage)
