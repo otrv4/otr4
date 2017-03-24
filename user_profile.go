@@ -105,16 +105,32 @@ func (profile *userProfile) verify(pub *cramerShoupPublicKey) (bool, error) {
 	return valid, nil
 }
 
-//XXX: this will be the signed version.
-// just call ser body?
-func (profile *userProfile) serialize() []byte {
+func serializeSignature(data *signature) [112]byte {
+	var b [112]byte
+	copy(b[:], data[:])
+
+	return b
+}
+
+func serializeBody(profile *userProfile) []byte {
 	var out []byte
 
 	out = appendData(out, parseToByte(profile.versions))
 	out = appendBytes(out, profile.pub.serialize())
 	out = appendWord64(out, profile.expiration)
+
+	if profile.transitionalSig != nil {
+		out = appendSignature(out, profile.transitionalSig)
+	}
+
+	return out
+}
+
+func (profile *userProfile) serialize() []byte {
+	var out []byte
+
+	out = serializeBody(profile)
 	out = appendSignature(out, profile.sig)
-	out = appendSignature(out, profile.transitionalSig)
 
 	return out
 }
