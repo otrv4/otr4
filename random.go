@@ -1,12 +1,20 @@
 package otr4
 
 import (
+	"crypto/rand"
 	"io"
 
 	"golang.org/x/crypto/sha3"
 
 	"github.com/twstrike/ed448"
 )
+
+func (c *conversation) rand() io.Reader {
+	if c.random != nil {
+		return c.random
+	}
+	return rand.Reader
+}
 
 func randSymKey(rand io.Reader) ([]byte, error) {
 	var b [symKeyBytes]byte

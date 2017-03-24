@@ -1,10 +1,25 @@
 package otr4
 
 import (
+	"crypto/rand"
+
 	"github.com/twstrike/ed448"
 
 	. "gopkg.in/check.v1"
 )
+
+func (s *OTR4Suite) Test_Randomness(c *C) {
+	// randomness
+	r := fixedRand([]byte{0x00})
+	con := &conversation{random: r}
+
+	c.Assert(con.rand(), DeepEquals, r)
+
+	// no randomness
+	con = &conversation{}
+
+	c.Assert(con.rand(), DeepEquals, rand.Reader)
+}
 
 func (s *OTR4Suite) Test_RandomBytes(c *C) {
 	b, err := randSymKey(fixedRand(csRandData))
