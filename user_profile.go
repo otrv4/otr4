@@ -152,3 +152,28 @@ func (profile *userProfile) serialize() []byte {
 
 	return out
 }
+
+func deserializeProfile(ser []byte) *userProfile {
+	var err error
+
+	profile := &userProfile{}
+
+	// XXX: make those numbers not magical
+	// XXX:do not ignore errors?
+	cursor := 6
+	_, rslt, _ := extractData(ser[:cursor])
+
+	profile.versions = bytesToString(rslt)
+
+	profile.pub, err = deserialize(ser[cursor : cursor+170])
+	if err != nil {
+		return nil
+	}
+	_, expiration, _ := extractWord64(ser[cursor+170 : cursor+170+8])
+
+	profile.expiration = int64(expiration)
+	profile.transitionalSig = deserializeTransSignature(ser[184:224])
+	profile.sig = deserializeSignature(ser[224:])
+
+	return profile
+}
