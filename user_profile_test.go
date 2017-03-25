@@ -219,7 +219,7 @@ func (s *OTR4Suite) Test_SerializeUserProfileBody(c *C) {
 	c.Assert(ser, DeepEquals, testSerBody[:184])
 	c.Assert(err, IsNil)
 
-	profile.transitionalSig = testTransitionSig
+	profile.transitionSig = testTransitionSig
 
 	ser = serializeBody(profile)
 
@@ -241,7 +241,7 @@ func (s *OTR4Suite) Test_SerializeUserProfile(c *C) {
 
 	keyPair, _ := deriveCramerShoupKeys(fixedRand(csRandData))
 	profile, _ := con.newProfile("34", keyPair)
-	profile.transitionalSig = testTransitionSig
+	profile.transitionSig = testTransitionSig
 
 	ser := profile.serialize()
 
@@ -313,7 +313,7 @@ func (s *OTR4Suite) Test_DeserializeUserProfile(c *C) {
 	// expiration
 	c.Assert(profile.expiration, DeepEquals, int64(12))
 	// transition sig
-	c.Assert(profile.transitionalSig, DeepEquals, testTransitionSig)
+	c.Assert(profile.transitionSig, DeepEquals, testTransitionSig)
 	// signature
 	c.Assert(profile.sig, DeepEquals, testSignature)
 

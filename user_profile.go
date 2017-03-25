@@ -13,15 +13,15 @@ type signature [sigBytes]byte
 type dsaSignature [dsaSigBytes]byte
 
 type userProfile struct {
-	versions        string
-	pub             *cramerShoupPublicKey
-	expiration      int64
-	transitionalSig *dsaSignature
-	sig             *signature
+	versions      string
+	pub           *cramerShoupPublicKey
+	expiration    int64
+	transitionSig *dsaSignature
+	sig           *signature
 }
 
 // XXX: make this not a method of conversation
-// XXX: add tranSignature
+// XXX: add transitionSignature
 func (c *conversation) newProfile(v string, keyPair *cramerShoupKeyPair) (*userProfile, error) {
 	profile, err := createProfileBody(v, keyPair)
 	if err != nil {
@@ -36,7 +36,7 @@ func (c *conversation) newProfile(v string, keyPair *cramerShoupKeyPair) (*userP
 	return profile, nil
 }
 
-// XXX: add tranSignature
+// XXX: add transitionSignature
 func createProfileBody(v string, keyPair *cramerShoupKeyPair) (*userProfile, error) {
 	if len(v) == 0 {
 		return nil, errInvalidVersion
@@ -60,7 +60,6 @@ func createProfileBody(v string, keyPair *cramerShoupKeyPair) (*userProfile, err
 }
 
 func (profile *userProfile) sign(rand io.Reader, keyPair *cramerShoupKeyPair) error {
-
 	sym, err := randSymKey(rand)
 	if err != nil {
 		// XXX: set profile to nil?
@@ -137,8 +136,8 @@ func serializeBody(profile *userProfile) []byte {
 	out = appendBytes(out, profile.pub.serialize())
 	out = appendWord64(out, profile.expiration)
 
-	if profile.transitionalSig != nil {
-		out = appendSignature(out, profile.transitionalSig)
+	if profile.transitionSig != nil {
+		out = appendSignature(out, profile.transitionSig)
 	}
 
 	return out
@@ -155,24 +154,23 @@ func (profile *userProfile) serialize() []byte {
 
 func deserializeProfile(ser []byte) *userProfile {
 	var err error
-
 	profile := &userProfile{}
 
 	// XXX: make those numbers not magical
 	// XXX:do not ignore errors?
 	cursor := 6
 	_, rslt, _ := extractData(ser[:cursor])
-
 	profile.versions = bytesToString(rslt)
 
 	profile.pub, err = deserialize(ser[cursor : cursor+170])
 	if err != nil {
 		return nil
 	}
-	_, expiration, _ := extractWord64(ser[cursor+170 : cursor+170+8])
 
+	_, expiration, _ := extractWord64(ser[cursor+170 : cursor+170+8])
 	profile.expiration = int64(expiration)
-	profile.transitionalSig = deserializeTransSignature(ser[184:224])
+
+	profile.transitionSig = deserializeTransSignature(ser[184:224])
 	profile.sig = deserializeSignature(ser[224:])
 
 	return profile
