@@ -231,17 +231,35 @@ func (s *OTR4Suite) Test_SerializeSignature(c *C) {
 	c.Assert(ser, IsNil)
 }
 
-func (s *OTR4Suite) Test_ExtractWord(c *C) {
+func (s *OTR4Suite) Test_ExtractWord32(c *C) {
 	bs := []byte{0x12, 0x14, 0x15}
-	_, rslt, ok := extractWord(bs)
+	i, rslt, ok := extractWord32(bs)
 
+	c.Assert(i, IsNil)
 	c.Assert(rslt, DeepEquals, uint32(0x0))
 	c.Assert(ok, Equals, false)
 
 	bs = []byte{0x12, 0x14, 0x15, 0xff, 0x03}
-	_, rslt, ok = extractWord(bs)
+	i, rslt, ok = extractWord32(bs)
 
+	c.Assert(i, DeepEquals, []byte{0x03})
 	c.Assert(rslt, DeepEquals, uint32(0x121415ff))
+	c.Assert(ok, Equals, true)
+}
+
+func (s *OTR4Suite) Test_ExtractWord64(c *C) {
+	bs := []byte{0x12, 0x14, 0x15}
+	_, rslt, ok := extractWord64(bs)
+
+	c.Assert(rslt, DeepEquals, uint64(0x0))
+	c.Assert(ok, Equals, false)
+
+	bs = []byte{0x12, 0x14, 0x15, 0xff, 0x03,
+		0x12, 0x14, 0x15, 0xff, 0x03,
+	}
+	_, rslt, ok = extractWord64(bs)
+
+	c.Assert(rslt, DeepEquals, uint64(0x121415ff03121415))
 	c.Assert(ok, Equals, true)
 }
 

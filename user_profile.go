@@ -112,6 +112,24 @@ func serializeSignature(data *signature) [112]byte {
 	return b
 }
 
+func deserializeSignature(bs []byte) *signature {
+	sig := &signature{}
+
+	for i, b := range bs {
+		sig[i] = b
+	}
+	return sig
+}
+
+func deserializeTransSignature(bs []byte) *dsaSignature {
+	sig := &dsaSignature{}
+
+	for i, b := range bs {
+		sig[i] = b
+	}
+	return sig
+}
+
 func serializeBody(profile *userProfile) []byte {
 	var out []byte
 
