@@ -1,6 +1,9 @@
 package otr4
 
-import "io"
+import (
+	"encoding/hex"
+	"io"
+)
 
 type fixedRandReader struct {
 	data []byte
@@ -18,4 +21,9 @@ func (r *fixedRandReader) Read(p []byte) (n int, err error) {
 		return
 	}
 	return 0, io.ErrUnexpectedEOF
+}
+
+func hexToBytes(s string) []byte {
+	bytes, _ := hex.DecodeString(s)
+	return bytes
 }

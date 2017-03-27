@@ -1,17 +1,10 @@
 package otr4
 
 import (
-	"encoding/hex"
-
 	"github.com/twstrike/ed448"
 
 	. "gopkg.in/check.v1"
 )
-
-func hexToBytes(s string) []byte {
-	bytes, _ := hex.DecodeString(s)
-	return bytes
-}
 
 func (s *OTR4Suite) Test_SMPSecretGeneration(c *C) {
 	aliceFingerprint := hexToBytes("0102030405060708090A0B0C0D0E0F101112" +
