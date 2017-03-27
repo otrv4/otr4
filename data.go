@@ -8,11 +8,24 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-func hashToScalar(in []byte) ed448.Scalar {
+func shakeToScalar(in []byte) ed448.Scalar {
 	hash := make([]byte, fieldBytes)
 	sha3.ShakeSum256(hash, in)
 	s := ed448.NewScalar(hash)
 	return s
+}
+
+func hashToScalar(i byte, in ...ed448.Point) ed448.Scalar {
+	hash := sha3.New512()
+	for _, p := range in {
+		hash.Write(p.Encode())
+	}
+	hash.Write([]byte{i})
+
+	h := hash.Sum(nil)
+	c := ed448.NewScalar(h[:56])
+
+	return c
 }
 
 func appendBytes(bs ...interface{}) []byte {
@@ -38,7 +51,7 @@ func appendBytes(bs ...interface{}) []byte {
 }
 
 func appendAndHash(bs ...interface{}) ed448.Scalar {
-	return hashToScalar(appendBytes(bs...))
+	return shakeToScalar(appendBytes(bs...))
 }
 
 func appendWord32(b []byte, data uint32) []byte {
