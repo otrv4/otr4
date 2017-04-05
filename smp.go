@@ -30,3 +30,12 @@ func generateZKP(r, a ed448.Scalar, ix byte) (ed448.Scalar, ed448.Scalar) {
 
 	return c, d
 }
+
+func verifyZKP(d, c ed448.Scalar, gen ed448.Point, ix byte) bool {
+	r := ed448.PrecomputedScalarMul(d)
+	s := ed448.PointScalarMul(gen, c)
+	p := ed448.NewPointFromBytes()
+	p.Add(r, s)
+	t := hashToScalar(ix, p)
+	return c.Equals(t)
+}
