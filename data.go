@@ -74,18 +74,18 @@ func appendPoint(b []byte, p ed448.Point) []byte {
 	return append(b, p.Encode()...)
 }
 
-func appendSignature(bs []byte, data interface{}) []byte {
-	switch d := data.(type) {
-	case *signature:
-		b := serializeSignature(d)
-		return append(bs, b[:]...)
-	case *dsaSignature:
-		var b [dsaSigBytes]byte
-		copy(b[:], d[:])
-		return append(bs, b[:]...)
-	}
-	return nil
-}
+//func appendSignature(bs []byte, data interface{}) []byte {
+//	switch d := data.(type) {
+//	case *signature:
+//		b := serializeSignature(d)
+//		return append(bs, b[:]...)
+//	case *dsaSignature:
+//		var b [dsaSigBytes]byte
+//		copy(b[:], d[:])
+//		return append(bs, b[:]...)
+//	}
+//	return nil
+//}
 
 func extractWord32(bs []byte) ([]byte, uint32, bool) {
 	if len(bs) < 4 {

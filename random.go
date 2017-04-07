@@ -49,7 +49,7 @@ func randLongTermScalar(rand io.Reader) (ed448.Scalar, error) {
 
 	hash := sha3.NewShake256()
 	hash.Write(b[:])
-	hash.Write([]byte("cramershoup_secret"))
+	hash.Write([]byte("cramershoup_secret")) //XXX: change me!
 	hash.Read(out[:])
 
 	return ed448.NewScalar(out[:]), nil

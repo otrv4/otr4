@@ -6,138 +6,62 @@ import (
 	"github.com/twstrike/ed448"
 )
 
-// XXX: serialize as MPI
-type cramerShoupPrivateKey struct {
-	x1, x2, y1, y2, z ed448.Scalar
+// XXX: change names
+type publicKey struct {
+	h ed448.Point
 }
 
-type cramerShoupPublicKey struct {
-	c, d, h ed448.Point
+type privateKey struct {
+	r ed448.Scalar
 }
 
-type cramerShoupKeyPair struct {
-	pub  *cramerShoupPublicKey
-	priv *cramerShoupPrivateKey
+func isValidPublicKey(pubs ...*publicKey) bool {
+	for _, pub := range pubs {
+		if !(pub.h.IsOnCurve()) {
+			return false
+		}
+	}
+	return true
 }
 
-type cramerShoupMessage struct {
-	u1, u2, e, v ed448.Point
-}
-
-//XXX: make random part of something else: conversation?
-func deriveCramerShoupPrivKey(rand io.Reader) (*cramerShoupPrivateKey, error) {
-	priv := &cramerShoupPrivateKey{}
-	var err1, err2, err3, err4, err5 error
-
-	priv.x1, err1 = randLongTermScalar(rand)
-	priv.x2, err2 = randLongTermScalar(rand)
-	priv.y1, err3 = randLongTermScalar(rand)
-	priv.y2, err4 = randLongTermScalar(rand)
-	priv.z, err5 = randLongTermScalar(rand)
-
-	return priv, firstError(err1, err2, err3, err4, err5)
-}
-
-func deriveCramerShoupKeys(rand io.Reader) (*cramerShoupKeyPair, error) {
+// XXX: encode the priv as MPI
+func generateKeys(rand io.Reader) (*publicKey, *privateKey, error) {
 	var err error
-	keyPair := &cramerShoupKeyPair{}
+	pub := &publicKey{}
+	priv := &privateKey{}
 
-	keyPair.priv, err = deriveCramerShoupPrivKey(rand)
+	priv.r, err = randLongTermScalar(rand)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	keyPair.pub = &cramerShoupPublicKey{}
-	keyPair.pub.c = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, keyPair.priv.x1, keyPair.priv.x2)
-	keyPair.pub.d = ed448.PointDoubleScalarMul(ed448.BasePoint, g2, keyPair.priv.y1, keyPair.priv.y2)
-	keyPair.pub.h = ed448.PointScalarMul(ed448.BasePoint, keyPair.priv.z)
+	pub.h = ed448.PrecomputedScalarMul(priv.r)
 
-	return keyPair, nil
+	return pub, priv, nil
 }
 
-func (csm *cramerShoupMessage) cramerShoupEnc(message []byte, rand io.Reader, pub *cramerShoupPublicKey) error {
-	r, err := randScalar(rand)
-	if err != nil {
-		return err
-	}
+var pubKeyType = []byte{0x00, 0x10}
+var pubKeyTypeValue = uint16(0x0010)
 
-	// u = G1*r, u2 = G2*r
-	csm.u1 = ed448.PointScalarMul(ed448.BasePoint, r)
-	csm.u2 = ed448.PointScalarMul(g2, r)
-
-	// e = (h*r) + m
-	m := ed448.NewPointFromBytes()
-	m.Decode(message, false)
-	csm.e = ed448.PointScalarMul(pub.h, r)
-	csm.e.Add(csm.e, m)
-
-	// α = H(u1,u2,e)
-	alpha := appendAndHash(csm.u1, csm.u2, csm.e)
-
-	// a = c * r
-	// b = d*(r * alpha)
-	// v = s + t
-	a := ed448.PointScalarMul(pub.c, r)
-	b := ed448.PointScalarMul(pub.d, r)
-	b = ed448.PointScalarMul(b, alpha)
-	csm.v = ed448.NewPointFromBytes()
-	csm.v.Add(a, b)
-	return nil
-}
-
-func (csm *cramerShoupMessage) cramerShoupDec(priv *cramerShoupPrivateKey) (message []byte, err error) {
-	// alpha = H(u1,u2,e)
-	alpha := appendAndHash(csm.u1, csm.u2, csm.e)
-
-	// (u1*(x1+y1*alpha) +u2*(x2+ y2*alpha) == v
-	// a = (u1*x1)+(u2*x2)
-	a := ed448.PointDoubleScalarMul(csm.u1, csm.u2, priv.x1, priv.x2)
-
-	// b = (u1*y1)+(u2*y2)
-	b := ed448.PointDoubleScalarMul(csm.u1, csm.u2, priv.y1, priv.y2)
-	v0 := ed448.PointScalarMul(b, alpha)
-	v0.Add(a, v0)
-	valid := v0.Equals(csm.v)
-	if !valid {
-		return nil, errImpossibleToDecrypt
-	}
-
-	// m = e - u1*z
-	m := ed448.PointScalarMul(csm.u1, priv.z)
-	m.Sub(csm.e, m)
-	message = m.Encode()
-	return
-}
-
-var csPubKeyType = []byte{0x00, 0x10}
-var csPubKeyTypeValue = uint16(0x0010)
-
-func (pub *cramerShoupPublicKey) serialize() []byte {
-	if pub.c == nil || pub.d == nil || pub.h == nil {
+func (pub *publicKey) serialize() []byte {
+	if pub.h == nil {
 		return nil
 	}
 
-	// XXX: do a serialize int instead?
-	rslt := csPubKeyType
-	rslt = appendPoint(rslt, pub.c)
-	rslt = appendPoint(rslt, pub.d)
+	rslt := pubKeyType
 	rslt = appendPoint(rslt, pub.h)
 	return rslt
 }
 
-func deserialize(ser []byte) (*cramerShoupPublicKey, error) {
+func deserialize(ser []byte) (*publicKey, error) {
+	pub := &publicKey{}
 	if len(ser) < 58 {
 		return nil, errInvalidLength
 	}
 
-	var err1, err2, err3 error
+	var err error
 	cursor := 2
+	pub.h, cursor, err = extractPoint(ser, cursor)
 
-	c, cursor, err1 := extractPoint(ser, cursor)
-	d, cursor, err2 := extractPoint(ser, cursor)
-	h, cursor, err3 := extractPoint(ser, cursor)
-
-	pub := &cramerShoupPublicKey{c, d, h}
-
-	return pub, firstError(err1, err2, err3)
+	return pub, err
 }

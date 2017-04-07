@@ -22,7 +22,7 @@ func (s *OTR4Suite) Test_Randomness(c *C) {
 }
 
 func (s *OTR4Suite) Test_RandomBytes(c *C) {
-	b, err := randSymKey(fixedRand(csRandData))
+	b, err := randSymKey(fixedRand(randData))
 
 	exp := []byte{
 		0x40, 0x80, 0x66, 0x2d, 0xd8, 0xe7, 0xf0, 0x9c,
@@ -36,7 +36,7 @@ func (s *OTR4Suite) Test_RandomBytes(c *C) {
 }
 
 func (s *OTR4Suite) Test_RandomScalar(c *C) {
-	scalar, err := randScalar(fixedRand(csRandData))
+	scalar, err := randScalar(fixedRand(randData))
 
 	exp := ed448.NewScalar(
 		[]byte{
@@ -55,7 +55,7 @@ func (s *OTR4Suite) Test_RandomScalar(c *C) {
 }
 
 func (s *OTR4Suite) Test_RandomLongTermScalar(c *C) {
-	scalar, err := randLongTermScalar(fixedRand(csRandData))
+	scalar, err := randLongTermScalar(fixedRand(randData))
 
 	exp := ed448.NewScalar(
 		[]byte{
