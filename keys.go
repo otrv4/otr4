@@ -6,6 +6,11 @@ import (
 	"github.com/twstrike/ed448"
 )
 
+type keyPair struct {
+	pub  publicKey
+	priv privateKey
+}
+
 // XXX: change names
 type publicKey struct {
 	h ed448.Point

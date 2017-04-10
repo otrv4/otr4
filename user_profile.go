@@ -1,5 +1,6 @@
 package otr4
 
+//
 //import (
 //	"io"
 //	"strings"
@@ -13,8 +14,11 @@ package otr4
 //type dsaSignature [dsaSigBytes]byte
 //
 //type userProfile struct {
-//	versions      string
-//	pub           *publicKey
+//	// change to set
+//	versions []byte
+//	longPub  *publicKey
+//	pub      *publicKey
+//	// Date
 //	expiration    int64
 //	transitionSig *dsaSignature
 //	sig           *signature

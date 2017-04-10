@@ -44,14 +44,15 @@ func (s *OTR4Suite) Test_Auth(c *C) {
 	c.Assert(err, ErrorMatches, ".*cannot source enough entropy")
 }
 
-//func (s *OTR4Suite) Test_Verify(c *C) {
-//	message := []byte("our message")
-//
-//	b := testSigma.verify(testPubA.h, testPubB.h, testPubC, message)
-//
-//	c.Assert(b, Equals, true)
-//}
+func (s *OTR4Suite) Test_Verify(c *C) {
+	message := []byte("our message")
 
+	b := testSigma.verify(testPubA.h, testPubB.h, testPubC, message)
+
+	c.Assert(b, Equals, true)
+}
+
+// XXX: implement tests with the correct gen of keys
 func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
 	sigma := new(authMessage)
 	message := []byte("hello, I am a message")
