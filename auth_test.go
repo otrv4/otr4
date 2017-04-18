@@ -57,7 +57,6 @@ func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
 	sigma := new(authMessage)
 	message := []byte("hello, I am a message")
 	fakeMessage := []byte("fake message")
-
 	pubA, privA, _ := generateKeys(rand.Reader)
 	pubB, _, _ := generateKeys(rand.Reader)
 

@@ -1,6 +1,7 @@
 package otr4
 
 import (
+	"crypto/sha512"
 	"io"
 
 	"github.com/twstrike/ed448"
@@ -35,12 +36,30 @@ func generateKeys(rand io.Reader) (*publicKey, *privateKey, error) {
 	pub := &publicKey{}
 	priv := &privateKey{}
 
-	priv.r, err = randLongTermScalar(rand)
+	privateKey := make([]byte, 56)
+	_, err = io.ReadFull(rand, privateKey[:])
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// waste 32 bytes?
+	digest := sha512.Sum512(privateKey[:])
+	var cofactor byte = 4
+	var one byte = 1
+
+	digest[0] &= -cofactor
+	digest[55] &= ^(-one << ((56 + 7) % 8))
+	digest[55] |= 1 << ((56 + 7) % 8)
+
+	// change to decode long
+	priv.r = ed448.NewScalar(digest[:56])
+
+	priv.r.Halve(priv.r)
+
 	pub.h = ed448.PrecomputedScalarMul(priv.r)
+
+	// this serializes
+	//_ = pub.h.IsogenizeToMont()
 
 	return pub, priv, nil
 }
