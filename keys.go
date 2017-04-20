@@ -1,8 +1,9 @@
 package otr4
 
 import (
-	"crypto/sha512"
 	"io"
+
+	"golang.org/x/crypto/sha3"
 
 	"github.com/twstrike/ed448"
 )
@@ -30,7 +31,7 @@ func isValidPublicKey(pubs ...*publicKey) bool {
 	return true
 }
 
-// XXX: encode the priv as MPI
+// XXX: encode the priv as POINT
 func generateKeys(rand io.Reader) (*publicKey, *privateKey, error) {
 	var err error
 	pub := &publicKey{}
@@ -42,24 +43,22 @@ func generateKeys(rand io.Reader) (*publicKey, *privateKey, error) {
 		return nil, nil, err
 	}
 
-	// waste 32 bytes?
-	digest := sha512.Sum512(privateKey[:])
+	digest := make([]byte, 57)
+	sha3.ShakeSum256(digest, privateKey)
+
 	var cofactor byte = 4
-	var one byte = 1
 
 	digest[0] &= -cofactor
-	digest[55] &= ^(-one << ((56 + 7) % 8))
-	digest[55] |= 1 << ((56 + 7) % 8)
+	digest[56] = 0
+	digest[55] |= 0x80
 
-	// change to decode long
+	// change to decode long, which take var input
 	priv.r = ed448.NewScalar(digest[:56])
-
-	priv.r.Halve(priv.r)
+	for c := uint(1); c < 4; c <<= 1 {
+		priv.r.Halve(priv.r)
+	}
 
 	pub.h = ed448.PrecomputedScalarMul(priv.r)
-
-	// this serializes
-	//_ = pub.h.IsogenizeToMont()
 
 	return pub, priv, nil
 }
