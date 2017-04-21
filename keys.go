@@ -31,13 +31,13 @@ func isValidPublicKey(pubs ...*publicKey) bool {
 	return true
 }
 
-// XXX: encode the priv as POINT
+// XXX: encode the priv as SCALAR
 func generateKeys(rand io.Reader) (*publicKey, *privateKey, error) {
 	var err error
 	pub := &publicKey{}
 	priv := &privateKey{}
 
-	privateKey := make([]byte, 56)
+	privateKey := make([]byte, 57)
 	_, err = io.ReadFull(rand, privateKey[:])
 	if err != nil {
 		return nil, nil, err
@@ -52,8 +52,7 @@ func generateKeys(rand io.Reader) (*publicKey, *privateKey, error) {
 	digest[56] = 0
 	digest[55] |= 0x80
 
-	// change to decode long, which take var input
-	priv.r = ed448.NewScalar(digest[:56])
+	priv.r = ed448.NewScalar(digest[:])
 	for c := uint(1); c < 4; c <<= 1 {
 		priv.r.Halve(priv.r)
 	}

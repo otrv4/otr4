@@ -52,7 +52,6 @@ func (s *OTR4Suite) Test_Verify(c *C) {
 	c.Assert(b, Equals, true)
 }
 
-// XXX: implement tests with the correct gen of keys
 func (s *OTR4Suite) Test_VerifyAndAuth(c *C) {
 	sigma := new(authMessage)
 	message := []byte("hello, I am a message")
