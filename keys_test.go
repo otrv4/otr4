@@ -2,6 +2,7 @@ package otr4
 
 import (
 	"github.com/twstrike/ed448"
+
 	. "gopkg.in/check.v1"
 )
 
@@ -55,11 +56,12 @@ func (s *OTR4Suite) Test_GenerateKeys(c *C) {
 		0xb7,
 	}
 
-	public, priv, _ := generateKeys(fixedRand(random))
+	public, priv, err := generateKeys(fixedRand(random))
 	pub := public.h.DSAEncode()
 
 	c.Assert(priv.r, DeepEquals, expPriv)
 	c.Assert(pub, DeepEquals, expPub)
+	c.Assert(err, IsNil)
 }
 
 func (s *OTR4Suite) Test_SerializeLongTermPubKey(c *C) {

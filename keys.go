@@ -3,9 +3,9 @@ package otr4
 import (
 	"io"
 
-	"golang.org/x/crypto/sha3"
-
 	"github.com/twstrike/ed448"
+
+	"golang.org/x/crypto/sha3"
 )
 
 type keyPair struct {
@@ -33,27 +33,24 @@ func isValidPublicKey(pubs ...*publicKey) bool {
 
 // XXX: encode the priv as SCALAR
 func generateKeys(rand io.Reader) (*publicKey, *privateKey, error) {
-	var err error
 	pub := &publicKey{}
 	priv := &privateKey{}
 
-	privateKey := make([]byte, 57)
-	_, err = io.ReadFull(rand, privateKey[:])
+	privateKey := make([]byte, privateKeySize)
+	_, err := io.ReadFull(rand, privateKey[:])
 	if err != nil {
 		return nil, nil, err
 	}
 
-	digest := make([]byte, 57)
+	digest := make([]byte, privateKeySize)
 	sha3.ShakeSum256(digest, privateKey)
 
-	var cofactor byte = 4
-
-	digest[0] &= -cofactor
-	digest[56] = 0
-	digest[55] |= 0x80
+	digest[0] &= -(ed448.Cofactor)
+	digest[privateKeySize-1] = 0
+	digest[privateKeySize-2] |= mask
 
 	priv.r = ed448.NewScalar(digest[:])
-	for c := uint(1); c < 4; c <<= 1 {
+	for c := uint(1); c < uint(ed448.Cofactor); c <<= 1 {
 		priv.r.Halve(priv.r)
 	}
 

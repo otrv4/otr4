@@ -1,6 +1,8 @@
 package otr4
 
-import "github.com/twstrike/ed448"
+import (
+	"github.com/twstrike/ed448"
+)
 
 const (
 	fieldBytes  = 56
@@ -8,6 +10,13 @@ const (
 	symKeyBytes = 32
 	sigBytes    = 112
 	dsaSigBytes = 40
+	// PublicKeySize is the size, in bytes, of public keys.
+	publicKeySize = 57
+	// PrivateKeySize is the size, in bytes, of private keys.
+	privateKeySize = 57
+	// SignatureSize is the size, in bytes, of signatures generated and verified.
+	signatureSize = 114
+	mask          = 0x80
 )
 
 var (
