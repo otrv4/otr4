@@ -67,8 +67,8 @@ func (s *OTR4Suite) Test_GenerateKeys(c *C) {
 func (s *OTR4Suite) Test_SerializeLongTermPubKey(c *C) {
 	ser := testPubA.serialize()
 
-	c.Assert(ser, DeepEquals, serPubA)
-	c.Assert(ser, HasLen, 58)
+	c.Assert(ser, DeepEquals, tmpSerPubA)
+	c.Assert(ser, HasLen, 59)
 
 	testPub := &publicKey{}
 	var exp []byte

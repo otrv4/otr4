@@ -71,7 +71,7 @@ func appendMPI(b []byte, data *big.Int) []byte {
 }
 
 func appendPoint(b []byte, p ed448.Point) []byte {
-	return append(b, p.Encode()...)
+	return append(b, p.DSAEncode()...)
 }
 
 //func appendSignature(bs []byte, data interface{}) []byte {

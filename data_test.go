@@ -165,17 +165,17 @@ func (s *OTR4Suite) Test_AppendPoint(c *C) {
 		},
 	)
 
-	prev, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a" +
-		"94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e0" +
-		"93aad8405db1d268")
+	prev, _ := hex.DecodeString("d06e7e063437acdf96d6e08434e008c78ef29847" +
+		"752f672e2ab7aeef2ddf4dc940f1b4b22026c29c9ee5dd31b08f5c4a2d1a" +
+		"973ef6b0000200")
 
 	c.Assert(appendPoint(bs, p), DeepEquals, prev)
 
-	exp, _ := hex.DecodeString("e4b2a1a14395b5eb3a5c3f3d265782efc28b9a" +
-		"94cc1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e0" +
-		"93aad8405db1d268e4b2a1a14395b5eb3a5c3f3d265782efc28b9a94cc" +
-		"1d46fff8725079cee988d0955a3da9a2ef30abc30ef1bd947f48e093aad" +
-		"8405db1d268")
+	exp, _ := hex.DecodeString("d06e7e063437acdf96d6e08434e008c78ef29847" +
+		"752f672e2ab7aeef2ddf4dc940f1b4b22026c29c9ee5dd31b08f5c4a2d1a" +
+		"973ef6b0000200d06e7e063437acdf96d6e08434e008c78ef29847752f67" +
+		"2e2ab7aeef2ddf4dc940f1b4b22026c29c9ee5dd31b08f5c4a2d1a973ef6" +
+		"b0000200")
 
 	c.Assert(appendPoint(prev, p), DeepEquals, exp)
 }
