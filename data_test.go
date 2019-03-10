@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/twstrike/ed448"
+	"github.com/otrv4/ed448"
 
 	. "gopkg.in/check.v1"
 )

@@ -6,7 +6,7 @@ package otr4
 //	"strings"
 //	"time"
 //
-//	"github.com/twstrike/ed448"
+//	"github.com/otrv4/ed448"
 //)
 //
 //type signature [sigBytes]byte

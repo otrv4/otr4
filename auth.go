@@ -3,7 +3,7 @@ package otr4
 import (
 	"io"
 
-	"github.com/twstrike/ed448"
+	"github.com/otrv4/ed448"
 )
 
 type authMessage struct {

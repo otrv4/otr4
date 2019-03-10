@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/twstrike/ed448"
+	"github.com/otrv4/ed448"
 	"golang.org/x/crypto/sha3"
 )
 

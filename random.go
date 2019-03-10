@@ -6,7 +6,7 @@ import (
 
 	"golang.org/x/crypto/sha3"
 
-	"github.com/twstrike/ed448"
+	"github.com/otrv4/ed448"
 )
 
 func (c *conversation) rand() io.Reader {
